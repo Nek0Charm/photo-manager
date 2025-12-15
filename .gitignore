@@ -32,7 +32,7 @@ backend/[Oo]ut/
 backend/msbuild.log
 backend/msbuild.err
 backend/msbuild.wrn
-
+backend/wwwroot/uploads/
 
 # Logs
 frontend/logs

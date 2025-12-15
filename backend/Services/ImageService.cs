@@ -32,10 +32,14 @@ namespace Backend.Services
 
         public ImageService(IWebHostEnvironment environment, ILogger<ImageService> logger)
         {
-            _webRoot = string.IsNullOrWhiteSpace(environment.WebRootPath)
-                ? Path.Combine(AppContext.BaseDirectory, "wwwroot")
-                : environment.WebRootPath;
+            if (string.IsNullOrWhiteSpace(environment.WebRootPath))
+            {
+                var fallbackRoot = Path.Combine(environment.ContentRootPath, "wwwroot");
+                Directory.CreateDirectory(fallbackRoot);
+                environment.WebRootPath = fallbackRoot;
+            }
 
+            _webRoot = environment.WebRootPath!;
             Directory.CreateDirectory(_webRoot);
             _logger = logger;
         }

@@ -1,0 +1,57 @@
+:root {
+  font-family: 'Inter', 'Noto Sans SC', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color-scheme: light dark;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+:root[data-theme='githubLight'] {
+  --pm-background: #f6f8fa;
+  --pm-surface-main: #f6f8fa;
+  --pm-surface-secondary: #f1f3f5;
+  --pm-text-primary: #24292f;
+  --pm-text-muted: #57606a;
+  --pm-border-subtle: #d8dee4;
+  --pm-border-strong: #6e7781;
+}
+
+:root[data-theme='githubDark'] {
+  --pm-background: #0d1117;
+  --pm-surface-main: #0d1117;
+  --pm-surface-secondary: #161b22;
+  --pm-text-primary: #e6edf3;
+  --pm-text-muted: #8b949e;
+  --pm-border-subtle: #30363d;
+  --pm-border-strong: #6e7681;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--pm-background);
+  color: var(--pm-text-primary);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.v-application {
+  font-family: inherit;
+  background: transparent !important;
+}
+
+.text-medium-emphasis {
+  color: var(--pm-text-muted) !important;
+}
+
+::selection {
+  background: rgba(9, 105, 218, 0.2);
+}
