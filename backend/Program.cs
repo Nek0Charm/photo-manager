@@ -20,12 +20,15 @@ builder.Services.AddSession(options =>
     options.Cookie.SameSite = SameSiteMode.Lax; 
 });
 
+var allowedOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
+    ?? new[] { "http://localhost:5173" };
+
 // 3. 配置 CORS (允许前端访问)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();

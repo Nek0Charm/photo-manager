@@ -32,3 +32,19 @@ export interface UploadPayload {
   takenAt?: string
   location?: string
 }
+
+export interface PhotoEditPayload {
+  photoId: number
+  file: Blob
+  fileName?: string
+  description?: string
+  tags?: string[]
+  takenAt?: string
+  location?: string | null
+}
+
+export interface PhotoMetadataPayload {
+  photoId: number
+  description?: string | null
+  tags: string[]
+}

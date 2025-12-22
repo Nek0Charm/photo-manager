@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
-import { listPhotos, uploadPhoto, getPhotoDetail } from '../services/photos'
-import type { PhotoItem, PhotoListParams, UploadPayload } from '../types/photos'
+import {
+  listPhotos,
+  uploadPhoto,
+  getPhotoDetail,
+  editPhoto as editPhotoRequest,
+  updatePhotoMetadata as updatePhotoMetadataRequest,
+} from '../services/photos'
+import type { PhotoEditPayload, PhotoItem, PhotoListParams, PhotoMetadataPayload, UploadPayload } from '../types/photos'
 import { getErrorMessage } from '../utils/errors'
 import { API_ASSET_BASE } from '../services/http'
 
@@ -157,6 +163,83 @@ export const usePhotoStore = defineStore('photos', {
         throw error
       } finally {
         this.detailLoading = false
+      }
+    },
+    async applyEdit(payload: PhotoEditPayload) {
+      if (!payload.file) {
+        throw new Error('缺少编辑结果文件')
+      }
+
+      const form = new FormData()
+      form.append('PhotoId', String(payload.photoId))
+      form.append('File', payload.file, payload.fileName ?? `photo-${payload.photoId}.jpg`)
+
+      if (payload.description !== undefined) {
+        form.append('Description', payload.description)
+      }
+
+      if (payload.tags && payload.tags.length) {
+        const normalized = payload.tags.map((tag) => tag.trim()).filter(Boolean)
+        if (normalized.length) {
+          form.append('Tags', normalized.join(','))
+        }
+      }
+
+      if (payload.takenAt) {
+        form.append('TakenAt', payload.takenAt)
+      }
+
+      if (payload.location !== undefined) {
+        form.append('Location', payload.location ?? '')
+      }
+
+      try {
+        const response = await editPhotoRequest(form)
+        const detail: PhotoItem = {
+          ...response,
+          fileUrl: toAbsolute(response.fileUrl),
+          thumbnailUrl: toAbsolute(response.thumbnailUrl),
+        }
+        const index = this.items.findIndex((item) => item.id === detail.id)
+        if (index >= 0) {
+          this.items[index] = detail
+        } else {
+          this.items.unshift(detail)
+        }
+        this.activePhotoId = detail.id
+        return detail
+      } catch (error) {
+        this.error = getErrorMessage(error, '应用图片编辑失败')
+        throw error
+      }
+    },
+    async updateMetadata(payload: PhotoMetadataPayload) {
+      const normalizedTags = payload.tags.map((tag) => tag.trim()).filter(Boolean)
+      const description =
+        payload.description !== undefined && payload.description !== null ? payload.description.trim() : payload.description
+
+      try {
+        const response = await updatePhotoMetadataRequest({
+          photoId: payload.photoId,
+          description,
+          tags: normalizedTags,
+        })
+        const detail: PhotoItem = {
+          ...response,
+          fileUrl: toAbsolute(response.fileUrl),
+          thumbnailUrl: toAbsolute(response.thumbnailUrl),
+        }
+        const index = this.items.findIndex((item) => item.id === detail.id)
+        if (index >= 0) {
+          this.items[index] = detail
+        } else {
+          this.items.unshift(detail)
+        }
+        this.activePhotoId = detail.id
+        return detail
+      } catch (error) {
+        this.error = getErrorMessage(error, '更新图片信息失败')
+        throw error
       }
     },
   },

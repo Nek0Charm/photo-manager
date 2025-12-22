@@ -6,6 +6,8 @@ import AppHeader from './components/layout/AppHeader.vue'
 import SidebarFilters from './components/layout/SidebarFilters.vue'
 import PhotoGallery from './components/photos/PhotoGallery.vue'
 import PhotoViewer from './components/photos/PhotoViewer.vue'
+import PhotoEditor from './components/photos/PhotoEditor.vue'
+import PhotoMetadataDialog from './components/photos/PhotoMetadataDialog.vue'
 import UploadFab from './components/upload/UploadFab.vue'
 import LoginPanel from './components/auth/LoginPanel.vue'
 import { useUiStore } from './stores/ui'
@@ -23,6 +25,8 @@ const drawer = ref(true)
 const uploadFabRef = ref<InstanceType<typeof UploadFab> | null>(null)
 const lightboxOpen = ref(false)
 const viewerIndex = ref(0)
+const editorOpen = ref(false)
+const metadataDialogOpen = ref(false)
 
 const viewerItems = computed(() => photoStore.filteredItems)
 const isAuthReady = computed(() => userStore.authChecked)
@@ -110,6 +114,18 @@ const toggleDrawer = () => {
 const openUploadDialog = () => {
   uploadFabRef.value?.openDialog()
 }
+
+const handleEditPhoto = () => {
+  if (!photoStore.activePhoto) return
+  lightboxOpen.value = false
+  editorOpen.value = true
+}
+
+const handleEditMetadata = () => {
+  if (!photoStore.activePhoto) return
+  lightboxOpen.value = false
+  metadataDialogOpen.value = true
+}
 </script>
 
 <template>
@@ -170,7 +186,12 @@ const openUploadDialog = () => {
       :index="viewerIndex"
       :loading="photoStore.detailLoading"
       @navigate="handleNavigate"
+      @edit="handleEditPhoto"
+      @edit-metadata="handleEditMetadata"
     />
+
+    <PhotoEditor v-model="editorOpen" :photo="photoStore.activePhoto" />
+    <PhotoMetadataDialog v-model="metadataDialogOpen" :photo="photoStore.activePhoto" />
 
     <UploadFab v-if="userStore.isAuthenticated" ref="uploadFabRef" />
   </v-app>

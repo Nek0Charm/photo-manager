@@ -21,6 +21,38 @@ namespace Backend.DTOs
         public string? Location { get; set; }
     }
 
+    public class PhotoEditRequest
+    {
+        [Required]
+        public int PhotoId { get; set; }
+
+        [Required]
+        public IFormFile? File { get; set; }
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        public DateTime? TakenAt { get; set; }
+
+        public string? Location { get; set; }
+
+        /// <summary>
+        /// 逗号分隔的自定义标签
+        /// </summary>
+        public string? Tags { get; set; }
+    }
+
+    public class PhotoMetadataUpdateRequest
+    {
+        [Required]
+        public int PhotoId { get; set; }
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        public IEnumerable<string>? Tags { get; set; }
+    }
+
     public class PhotoListRequest
     {
         private const int MaxPageSize = 60;

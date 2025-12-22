@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const FALLBACK_API = 'http://localhost:5151/api'
+const FALLBACK_API = '/api'
 const FALLBACK_DEV = 'http://localhost:5173'
 
 const parseUrl = (value: string, base?: string) => {
@@ -9,14 +9,14 @@ const parseUrl = (value: string, base?: string) => {
   try {
     return trimmed.startsWith('http') ? new URL(trimmed) : new URL(trimmed, defaultBase)
   } catch {
-    return new URL(FALLBACK_API)
+    return new URL(FALLBACK_API, defaultBase)
   }
 }
 
 const apiEnv = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim()
 const assetEnv = (import.meta.env.VITE_ASSET_BASE_URL as string | undefined)?.trim()
 
-const apiUrl = apiEnv && apiEnv.length > 0 ? parseUrl(apiEnv) : new URL(FALLBACK_API)
+const apiUrl = apiEnv && apiEnv.length > 0 ? parseUrl(apiEnv) : parseUrl(FALLBACK_API)
 const normalizedBase = apiUrl.href.replace(/\/$/, '')
 
 const derivedAssetBase = normalizedBase.replace(/\/api$/i, '')

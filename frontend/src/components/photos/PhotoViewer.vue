@@ -12,6 +12,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
   (e: 'navigate', direction: 'prev' | 'next'): void
+  (e: 'edit', photoId: number | null): void
+  (e: 'edit-metadata', photoId: number | null): void
 }>()
 
 const activePhoto = computed(() => props.items[props.index] ?? null)
@@ -19,6 +21,8 @@ const activePhoto = computed(() => props.items[props.index] ?? null)
 const close = () => emit('update:modelValue', false)
 const goPrev = () => emit('navigate', 'prev')
 const goNext = () => emit('navigate', 'next')
+const openEditor = () => emit('edit', activePhoto.value?.id ?? null)
+const openMetadataEditor = () => emit('edit-metadata', activePhoto.value?.id ?? null)
 </script>
 
 <template>
@@ -32,6 +36,22 @@ const goNext = () => emit('navigate', 'next')
           </p>
         </div>
         <div class="viewer-actions">
+          <v-btn
+            class="mr-2"
+            icon="mdi-tag-text-outline"
+            variant="text"
+            color="white"
+            :disabled="!activePhoto"
+            @click="openMetadataEditor"
+          />
+          <v-btn
+            class="mr-2"
+            icon="mdi-tune-variant"
+            variant="text"
+            color="white"
+            :disabled="!activePhoto"
+            @click="openEditor"
+          />
           <v-btn icon="mdi-close" variant="text" color="white" @click="close" />
         </div>
       </div>

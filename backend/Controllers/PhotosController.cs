@@ -2,9 +2,11 @@ using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
 using Backend.Services;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 
 namespace Backend.Controllers
 {
@@ -14,11 +16,13 @@ namespace Backend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IImageService _imageService;
+        private readonly IWebHostEnvironment _environment;
 
-        public PhotosController(AppDbContext context, IImageService imageService)
+        public PhotosController(AppDbContext context, IImageService imageService, IWebHostEnvironment environment)
         {
             _context = context;
             _imageService = imageService;
+            _environment = environment;
         }
 
         private int? CurrentUserId => HttpContext.Session.GetInt32("UserId");
@@ -153,6 +157,118 @@ namespace Backend.Controllers
             return Ok(ToDto(photo));
         }
 
+        [HttpPost("edit")]
+        public async Task<IActionResult> Edit([FromForm] PhotoEditRequest request, CancellationToken cancellationToken)
+        {
+            var userId = CurrentUserId;
+            if (userId == null)
+            {
+                return Unauthorized(new { message = "未登录" });
+            }
+
+            if (request.File == null)
+            {
+                return BadRequest(new { message = "请提供编辑后的图片" });
+            }
+
+            var photo = await _context.Photos
+                .Include(p => p.PhotoTags)
+                .ThenInclude(pt => pt.Tag)
+                .FirstOrDefaultAsync(p => p.Id == request.PhotoId && p.UserId == userId.Value, cancellationToken);
+
+            if (photo == null)
+            {
+                return NotFound(new { message = "图片不存在" });
+            }
+
+            var result = await _imageService.SavePhotoAsync(request.File, cancellationToken);
+
+            DeletePhysicalFile(photo.FilePath);
+            DeletePhysicalFile(photo.ThumbnailPath);
+
+            photo.FilePath = result.FilePath;
+            photo.ThumbnailPath = result.ThumbnailPath;
+            photo.Width = result.Width;
+            photo.Height = result.Height;
+            photo.TakenAt = request.TakenAt ?? result.TakenAt ?? photo.TakenAt;
+
+            if (request.Location != null)
+            {
+                photo.Location = request.Location;
+            }
+            else if (!string.IsNullOrWhiteSpace(result.Location))
+            {
+                photo.Location = result.Location;
+            }
+
+            if (request.Description != null)
+            {
+                photo.Description = request.Description;
+            }
+
+            RemoveTags(photo, TagType.Exif);
+            foreach (var tag in result.ExifTags)
+            {
+                await AttachTagAsync(photo, tag, TagType.Exif, cancellationToken);
+            }
+
+            if (!string.IsNullOrWhiteSpace(photo.Location))
+            {
+                await AttachTagAsync(photo, photo.Location, TagType.Exif, cancellationToken);
+            }
+
+            if (request.Tags != null)
+            {
+                RemoveTags(photo, TagType.Manual);
+                foreach (var tag in ParseTags(request.Tags))
+                {
+                    await AttachTagAsync(photo, tag, TagType.Manual, cancellationToken);
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return Ok(ToDto(photo));
+        }
+
+        [HttpPost("update-metadata")]
+        public async Task<IActionResult> UpdateMetadata([FromBody] PhotoMetadataUpdateRequest request, CancellationToken cancellationToken)
+        {
+            var userId = CurrentUserId;
+            if (userId == null)
+            {
+                return Unauthorized(new { message = "未登录" });
+            }
+
+            var photo = await _context.Photos
+                .Include(p => p.PhotoTags)
+                .ThenInclude(pt => pt.Tag)
+                .FirstOrDefaultAsync(p => p.Id == request.PhotoId && p.UserId == userId.Value, cancellationToken);
+
+            if (photo == null)
+            {
+                return NotFound(new { message = "图片不存在" });
+            }
+
+            if (request.Description != null)
+            {
+                photo.Description = request.Description;
+            }
+
+            if (request.Tags != null)
+            {
+                RemoveTags(photo, TagType.Manual);
+                foreach (var tag in ParseTags(request.Tags))
+                {
+                    await AttachTagAsync(photo, tag, TagType.Manual, cancellationToken);
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return Ok(ToDto(photo));
+        }
+
         private async Task AttachTagAsync(Photo photo, string? name, TagType type, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(name))
@@ -176,6 +292,49 @@ namespace Backend.Controllers
             photo.PhotoTags.Add(new PhotoTag { Photo = photo, Tag = tag });
         }
 
+        private void RemoveTags(Photo photo, TagType type)
+        {
+            var targets = photo.PhotoTags
+                .Where(pt => pt.Tag != null && pt.Tag.Type == type)
+                .ToList();
+
+            foreach (var item in targets)
+            {
+                _context.PhotoTags.Remove(item);
+                photo.PhotoTags.Remove(item);
+            }
+        }
+
+        private void DeletePhysicalFile(string? relativePath)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath))
+            {
+                return;
+            }
+
+            var root = ResolveWebRoot();
+            var sanitized = relativePath.TrimStart('\\', '/').Replace('/', Path.DirectorySeparatorChar);
+            var target = Path.Combine(root, sanitized);
+
+            if (System.IO.File.Exists(target))
+            {
+                System.IO.File.Delete(target);
+            }
+        }
+
+        private string ResolveWebRoot()
+        {
+            if (!string.IsNullOrWhiteSpace(_environment.WebRootPath))
+            {
+                return _environment.WebRootPath!;
+            }
+
+            var fallback = Path.Combine(_environment.ContentRootPath ?? AppContext.BaseDirectory, "wwwroot");
+            Directory.CreateDirectory(fallback);
+            _environment.WebRootPath = fallback;
+            return fallback;
+        }
+
         private static PhotoItemDto ToDto(Photo photo)
         {
             return new PhotoItemDto
@@ -195,6 +354,18 @@ namespace Backend.Controllers
                     .ToArray(),
                 CreatedAt = photo.CreatedAt
             };
+        }
+
+        private static IEnumerable<string> ParseTags(IEnumerable<string>? tags)
+        {
+            if (tags == null)
+            {
+                return Array.Empty<string>();
+            }
+
+            return tags
+                .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                .Select(tag => tag.Trim());
         }
 
         private static IEnumerable<string> ParseTags(string? tags)
