@@ -5,8 +5,7 @@ import { useUiStore } from '../../stores/ui'
 import { usePhotoStore } from '../../stores/photos'
 import { useUserStore } from '../../stores/user'
 
-const props = defineProps<{ isMobile: boolean }>()
-const emit = defineEmits<{ (e: 'toggle-drawer'): void; (e: 'open-upload'): void }>()
+const emit = defineEmits<{ (e: 'open-upload'): void }>()
 
 const uiStore = useUiStore()
 const photoStore = usePhotoStore()
@@ -32,14 +31,6 @@ const runSearch = () => {
 
 <template>
   <v-app-bar flat height="72" class="app-header" color="surface">
-    <v-btn
-      v-if="props.isMobile"
-      icon="mdi-menu"
-      variant="text"
-      class="mr-2"
-      :title="props.isMobile ? '打开筛选面板' : ''"
-      @click="emit('toggle-drawer')"
-    />
     <v-toolbar-title class="font-weight-bold text-h6">
       <span class="text-primary">Photo</span> Manager
     </v-toolbar-title>

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useDisplay, useTheme } from 'vuetify'
+import { useTheme } from 'vuetify'
 import { storeToRefs } from 'pinia'
 import AppHeader from './components/layout/AppHeader.vue'
-import SidebarFilters from './components/layout/SidebarFilters.vue'
 import PhotoGallery from './components/photos/PhotoGallery.vue'
 import PhotoViewer from './components/photos/PhotoViewer.vue'
 import PhotoEditor from './components/photos/PhotoEditor.vue'
@@ -19,10 +18,8 @@ const uiStore = useUiStore()
 const photoStore = usePhotoStore()
 const userStore = useUserStore()
 const theme = useTheme()
-const { mobile } = useDisplay()
 const { currentTheme } = storeToRefs(uiStore)
 
-const drawer = ref(true)
 const uploadFabRef = ref<InstanceType<typeof UploadFab> | null>(null)
 const lightboxOpen = ref(false)
 const viewerIndex = ref(0)
@@ -32,14 +29,6 @@ const deleteDialogOpen = ref(false)
 
 const viewerItems = computed(() => photoStore.filteredItems)
 const isAuthReady = computed(() => userStore.authChecked)
-
-watch(
-  () => mobile.value,
-  (isMobile) => {
-    drawer.value = !isMobile
-  },
-  { immediate: true },
-)
 
 watch(
   () => currentTheme.value,
@@ -109,10 +98,6 @@ const handleNavigate = (direction: 'prev' | 'next') => {
   }
 }
 
-const toggleDrawer = () => {
-  drawer.value = !drawer.value
-}
-
 const openUploadDialog = () => {
   uploadFabRef.value?.openDialog()
 }
@@ -142,19 +127,7 @@ const handleDeleted = () => {
 
 <template>
   <v-app class="app-shell">
-    <AppHeader :is-mobile="mobile" @toggle-drawer="toggleDrawer" @open-upload="openUploadDialog" />
-
-    <v-navigation-drawer
-      v-if="userStore.isAuthenticated"
-      v-model="drawer"
-      class="app-drawer"
-      :width="320"
-      :temporary="mobile"
-      floating
-      touchless
-    >
-      <SidebarFilters @close="drawer = false" />
-    </v-navigation-drawer>
+    <AppHeader @open-upload="openUploadDialog" />
 
     <v-main class="app-main">
       <div v-if="!isAuthReady" class="auth-loading">
@@ -214,10 +187,6 @@ const handleDeleted = () => {
 <style scoped>
 .app-shell {
   min-height: 100vh;
-}
-
-.app-drawer {
-  border-right: 1px solid var(--pm-border-subtle);
 }
 
 .app-main {
