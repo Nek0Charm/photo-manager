@@ -183,6 +183,50 @@ namespace Backend.Controllers
 
             var result = await _imageService.SavePhotoAsync(request.File, cancellationToken);
 
+            if (request.SaveAsNew)
+            {
+                var newPhoto = new Photo
+                {
+                    UserId = userId.Value,
+                    FilePath = result.FilePath,
+                    ThumbnailPath = result.ThumbnailPath,
+                    Width = result.Width,
+                    Height = result.Height,
+                    TakenAt = request.TakenAt ?? result.TakenAt ?? photo.TakenAt,
+                    Location = request.Location ?? result.Location ?? photo.Location,
+                    Description = request.Description ?? photo.Description,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Photos.Add(newPhoto);
+
+                var manualTags = request.Tags != null
+                    ? ParseTags(request.Tags)
+                    : photo.PhotoTags
+                        .Where(pt => pt.Tag != null && pt.Tag.Type == TagType.Manual)
+                        .Select(pt => pt.Tag!.Name)
+                        .ToArray();
+
+                foreach (var tag in manualTags)
+                {
+                    await AttachTagAsync(newPhoto, tag, TagType.Manual, cancellationToken);
+                }
+
+                foreach (var tag in result.ExifTags)
+                {
+                    await AttachTagAsync(newPhoto, tag, TagType.Exif, cancellationToken);
+                }
+
+                if (!string.IsNullOrWhiteSpace(newPhoto.Location))
+                {
+                    await AttachTagAsync(newPhoto, newPhoto.Location, TagType.Exif, cancellationToken);
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                return Ok(ToDto(newPhoto));
+            }
+
             DeletePhysicalFile(photo.FilePath);
             DeletePhysicalFile(photo.ThumbnailPath);
 
@@ -267,6 +311,40 @@ namespace Backend.Controllers
             await _context.SaveChangesAsync(cancellationToken);
 
             return Ok(ToDto(photo));
+        }
+
+        [HttpPost("delete")]
+        public async Task<IActionResult> Delete([FromBody] PhotoDeleteRequest request, CancellationToken cancellationToken)
+        {
+            var userId = CurrentUserId;
+            if (userId == null)
+            {
+                return Unauthorized(new { message = "未登录" });
+            }
+
+            var photo = await _context.Photos
+                .Include(p => p.PhotoTags)
+                .ThenInclude(pt => pt.Tag)
+                .FirstOrDefaultAsync(p => p.Id == request.PhotoId && p.UserId == userId.Value, cancellationToken);
+
+            if (photo == null)
+            {
+                return NotFound(new { message = "图片不存在" });
+            }
+
+            DeletePhysicalFile(photo.FilePath);
+            DeletePhysicalFile(photo.ThumbnailPath);
+
+            if (photo.PhotoTags.Any())
+            {
+                _context.PhotoTags.RemoveRange(photo.PhotoTags);
+            }
+
+            _context.Photos.Remove(photo);
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return Ok(new { success = true });
         }
 
         private async Task AttachTagAsync(Photo photo, string? name, TagType type, CancellationToken cancellationToken)

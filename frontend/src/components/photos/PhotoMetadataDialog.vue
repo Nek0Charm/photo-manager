@@ -17,6 +17,7 @@ const photoStore = usePhotoStore()
 
 const description = ref('')
 const tags = ref<string[]>([])
+const newTag = ref('')
 const saving = ref(false)
 const errorMessage = ref('')
 const currentPhoto = computed(() => props.photo)
@@ -31,6 +32,7 @@ const dialogTitle = computed(() => {
 const syncForm = () => {
   description.value = props.photo?.description ?? ''
   tags.value = [...(props.photo?.tags ?? [])]
+  newTag.value = ''
   errorMessage.value = ''
 }
 
@@ -59,6 +61,21 @@ const close = () => {
     return
   }
   emit('update:modelValue', false)
+}
+
+const addTag = () => {
+  const normalized = newTag.value.trim()
+  if (!normalized) {
+    return
+  }
+  if (!tags.value.includes(normalized)) {
+    tags.value = [...tags.value, normalized]
+  }
+  newTag.value = ''
+}
+
+const removeTag = (target: string) => {
+  tags.value = tags.value.filter((tag) => tag !== target)
 }
 
 const handleSave = async () => {
@@ -107,20 +124,42 @@ const handleSave = async () => {
           class="mb-4"
           :disabled="!currentPhoto || saving"
         />
-        <v-combobox
-          v-model="tags"
-          label="标签"
-          variant="outlined"
-          hide-details
-          chips
-          multiple
-          clearable
-          class="mb-1"
-          :disabled="!currentPhoto || saving"
-          placeholder="输入内容并按 Enter 添加"
-        />
+        <div class="tag-input-row">
+          <v-text-field
+            v-model="newTag"
+            label="标签"
+            variant="outlined"
+            hide-details
+            :disabled="!currentPhoto || saving"
+            placeholder="输入内容并按 Enter 添加"
+            @keydown.enter.prevent="addTag"
+          />
+          <v-btn
+            class="ml-3"
+            color="primary"
+            variant="tonal"
+            :disabled="!currentPhoto || saving || !newTag.trim()"
+            @click="addTag"
+          >
+            添加
+          </v-btn>
+        </div>
+        <div v-if="tags.length" class="tag-chip-row mb-2">
+          <v-chip
+            v-for="tag in tags"
+            :key="tag"
+            class="mr-2 mb-2"
+            color="primary"
+            variant="tonal"
+            label
+            closable
+            @click:close="removeTag(tag)"
+          >
+            {{ tag }}
+          </v-chip>
+        </div>
         <p class="field-hint text-caption text-medium-emphasis">
-          标签将用于筛选与搜索，可删除旧标签或输入新标签后回车添加
+          标签将用于筛选与搜索，可直接点击右上角的 × 删除
         </p>
       </v-card-text>
       <v-card-actions class="justify-end">
@@ -140,5 +179,15 @@ const handleSave = async () => {
 
 .field-hint {
   margin: 0;
+}
+
+.tag-input-row {
+  display: flex;
+  align-items: center;
+}
+
+.tag-chip-row {
+  display: flex;
+  flex-wrap: wrap;
 }
 </style>

@@ -21,6 +21,10 @@ export function updatePhotoMetadata(payload: PhotoMetadataPayload) {
   return http.post<PhotoItem>('/photos/update-metadata', payload).then((res) => res.data)
 }
 
+export function deletePhoto(photoId: number) {
+  return http.post('/photos/delete', { photoId }).then((res) => res.data)
+}
+
 export function getPhotoDetail(id: number) {
   return http.post<PhotoItem>('/photos/detail', { id }).then((res) => res.data)
 }

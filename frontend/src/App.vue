@@ -8,6 +8,7 @@ import PhotoGallery from './components/photos/PhotoGallery.vue'
 import PhotoViewer from './components/photos/PhotoViewer.vue'
 import PhotoEditor from './components/photos/PhotoEditor.vue'
 import PhotoMetadataDialog from './components/photos/PhotoMetadataDialog.vue'
+import PhotoDeleteDialog from './components/photos/PhotoDeleteDialog.vue'
 import UploadFab from './components/upload/UploadFab.vue'
 import LoginPanel from './components/auth/LoginPanel.vue'
 import { useUiStore } from './stores/ui'
@@ -27,6 +28,7 @@ const lightboxOpen = ref(false)
 const viewerIndex = ref(0)
 const editorOpen = ref(false)
 const metadataDialogOpen = ref(false)
+const deleteDialogOpen = ref(false)
 
 const viewerItems = computed(() => photoStore.filteredItems)
 const isAuthReady = computed(() => userStore.authChecked)
@@ -126,6 +128,16 @@ const handleEditMetadata = () => {
   lightboxOpen.value = false
   metadataDialogOpen.value = true
 }
+
+const handleDeletePhoto = () => {
+  if (!photoStore.activePhoto) return
+  deleteDialogOpen.value = true
+}
+
+const handleDeleted = () => {
+  deleteDialogOpen.value = false
+  lightboxOpen.value = false
+}
 </script>
 
 <template>
@@ -188,10 +200,12 @@ const handleEditMetadata = () => {
       @navigate="handleNavigate"
       @edit="handleEditPhoto"
       @edit-metadata="handleEditMetadata"
+      @delete="handleDeletePhoto"
     />
 
     <PhotoEditor v-model="editorOpen" :photo="photoStore.activePhoto" />
     <PhotoMetadataDialog v-model="metadataDialogOpen" :photo="photoStore.activePhoto" />
+    <PhotoDeleteDialog v-model="deleteDialogOpen" :photo="photoStore.activePhoto" @deleted="handleDeleted" />
 
     <UploadFab v-if="userStore.isAuthenticated" ref="uploadFabRef" />
   </v-app>

@@ -38,13 +38,6 @@ const updateDate = (field: 'start' | 'end', value: string) => {
         density="comfortable"
         placeholder="选择一个或多个标签"
       >
-        <template #append-inner>
-          <v-tooltip text="服务端仅支持优先使用第一个标签">
-            <template #activator="{ props: activatorProps }">
-              <v-icon v-bind="activatorProps" icon="mdi-information-outline" size="16" class="mr-2" />
-            </template>
-          </v-tooltip>
-        </template>
       </v-select>
     </section>
 

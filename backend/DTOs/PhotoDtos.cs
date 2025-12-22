@@ -40,6 +40,8 @@ namespace Backend.DTOs
         /// 逗号分隔的自定义标签
         /// </summary>
         public string? Tags { get; set; }
+
+        public bool SaveAsNew { get; set; }
     }
 
     public class PhotoMetadataUpdateRequest
@@ -51,6 +53,12 @@ namespace Backend.DTOs
         public string? Description { get; set; }
 
         public IEnumerable<string>? Tags { get; set; }
+    }
+
+    public class PhotoDeleteRequest
+    {
+        [Required]
+        public int PhotoId { get; set; }
     }
 
     public class PhotoListRequest

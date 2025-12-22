@@ -5,6 +5,7 @@ import {
   getPhotoDetail,
   editPhoto as editPhotoRequest,
   updatePhotoMetadata as updatePhotoMetadataRequest,
+  deletePhoto as deletePhotoRequest,
 } from '../services/photos'
 import type { PhotoEditPayload, PhotoItem, PhotoListParams, PhotoMetadataPayload, UploadPayload } from '../types/photos'
 import { getErrorMessage } from '../utils/errors'
@@ -193,6 +194,10 @@ export const usePhotoStore = defineStore('photos', {
         form.append('Location', payload.location ?? '')
       }
 
+      if (payload.saveAsNew) {
+        form.append('SaveAsNew', String(payload.saveAsNew))
+      }
+
       try {
         const response = await editPhotoRequest(form)
         const detail: PhotoItem = {
@@ -239,6 +244,22 @@ export const usePhotoStore = defineStore('photos', {
         return detail
       } catch (error) {
         this.error = getErrorMessage(error, '更新图片信息失败')
+        throw error
+      }
+    },
+    async deletePhoto(photoId: number) {
+      try {
+        await deletePhotoRequest(photoId)
+        this.items = this.items.filter((item) => item.id !== photoId)
+        if (this.total > 0) {
+          this.total = Math.max(0, this.total - 1)
+        }
+        if (this.activePhotoId === photoId) {
+          const fallback = this.items.length ? this.items[0] : null
+          this.activePhotoId = fallback ? fallback.id : null
+        }
+      } catch (error) {
+        this.error = getErrorMessage(error, '删除图片失败')
         throw error
       }
     },

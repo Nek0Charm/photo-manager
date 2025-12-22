@@ -14,6 +14,7 @@ const emit = defineEmits<{
   (e: 'navigate', direction: 'prev' | 'next'): void
   (e: 'edit', photoId: number | null): void
   (e: 'edit-metadata', photoId: number | null): void
+  (e: 'delete', photoId: number | null): void
 }>()
 
 const activePhoto = computed(() => props.items[props.index] ?? null)
@@ -23,6 +24,7 @@ const goPrev = () => emit('navigate', 'prev')
 const goNext = () => emit('navigate', 'next')
 const openEditor = () => emit('edit', activePhoto.value?.id ?? null)
 const openMetadataEditor = () => emit('edit-metadata', activePhoto.value?.id ?? null)
+const requestDelete = () => emit('delete', activePhoto.value?.id ?? null)
 </script>
 
 <template>
@@ -51,6 +53,14 @@ const openMetadataEditor = () => emit('edit-metadata', activePhoto.value?.id ?? 
             color="white"
             :disabled="!activePhoto"
             @click="openEditor"
+          />
+          <v-btn
+            class="mr-2"
+            icon="mdi-delete-outline"
+            variant="text"
+            color="error"
+            :disabled="!activePhoto"
+            @click="requestDelete"
           />
           <v-btn icon="mdi-close" variant="text" color="white" @click="close" />
         </div>

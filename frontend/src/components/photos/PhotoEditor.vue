@@ -167,7 +167,7 @@ const exportEditedBlob = async () => {
   })
 }
 
-const handleSave = async () => {
+const handleSave = async (saveAsNew = false) => {
   if (!props.photo) {
     return
   }
@@ -180,11 +180,12 @@ const handleSave = async () => {
       photoId: props.photo.id,
       file: blob,
       fileName: `edited-${props.photo.id}.jpg`,
+      saveAsNew,
     })
     emit('saved')
     emit('update:modelValue', false)
   } catch (error) {
-    errorMessage.value = getErrorMessage(error, '保存编辑结果失败')
+    errorMessage.value = getErrorMessage(error, saveAsNew ? '另存为失败' : '保存编辑结果失败')
   } finally {
     saving.value = false
   }
@@ -262,6 +263,16 @@ onBeforeUnmount(() => destroyCropper())
           />
           <v-btn class="mr-2" variant="text" :disabled="!props.photo || saving" @click="resetAdjustments">
             重置
+          </v-btn>
+          <v-btn
+            class="mr-2"
+            variant="tonal"
+            color="primary"
+            :loading="saving"
+            :disabled="!props.photo"
+            @click="handleSave(true)"
+          >
+            另存为
           </v-btn>
           <v-btn color="primary" :loading="saving" :disabled="!props.photo" @click="handleSave">保存</v-btn>
           <v-btn icon="mdi-close" variant="text" class="ml-2" :disabled="saving" @click="close" />
@@ -460,11 +471,16 @@ onBeforeUnmount(() => destroyCropper())
 @media (max-width: 960px) {
   .editor-body {
     grid-template-columns: 1fr;
-    grid-auto-rows: minmax(0, auto);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .editor-preview {
+    min-height: 55vh;
   }
 
   .editor-controls {
     padding-right: 0;
+    max-height: 45vh;
   }
 }
 </style>

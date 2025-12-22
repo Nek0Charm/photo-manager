@@ -41,6 +41,7 @@ export interface PhotoEditPayload {
   tags?: string[]
   takenAt?: string
   location?: string | null
+  saveAsNew?: boolean
 }
 
 export interface PhotoMetadataPayload {
