@@ -274,7 +274,7 @@ onBeforeUnmount(() => destroyCropper())
           >
             另存为
           </v-btn>
-          <v-btn color="primary" :loading="saving" :disabled="!props.photo" @click="handleSave">保存</v-btn>
+          <v-btn color="primary" :loading="saving" :disabled="!props.photo" @click="() => handleSave(false)">保存</v-btn>
           <v-btn icon="mdi-close" variant="text" class="ml-2" :disabled="saving" @click="close" />
         </div>
       </div>
