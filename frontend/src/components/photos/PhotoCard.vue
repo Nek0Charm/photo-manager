@@ -29,8 +29,8 @@ const emit = defineEmits<{ (e: 'select'): void }>()
     </v-img>
     <div class="photo-card__body">
       <div class="d-flex align-center justify-space-between mb-2">
-        <h3 class="photo-card__title">
-          {{ props.photo.description || '未添加描述' }}
+        <h3 v-if="props.photo.description" class="photo-card__title">
+          {{ props.photo.description }}
         </h3>
         <span class="photo-card__timestamp text-caption">
           {{ new Date(props.photo.createdAt).toLocaleDateString() }}

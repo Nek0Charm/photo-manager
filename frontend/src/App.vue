@@ -82,7 +82,9 @@ onBeforeUnmount(() => {
 })
 
 const handleSelectPhoto = async ({ id, index }: { id: number; index: number }) => {
-  viewerIndex.value = index
+  const items = viewerItems.value
+  const targetIndex = items.findIndex((item) => item.id === id)
+  viewerIndex.value = targetIndex >= 0 ? targetIndex : index
   lightboxOpen.value = true
   await photoStore.selectPhoto(id).catch(() => undefined)
 }
