@@ -47,6 +47,9 @@ export const usePhotoStore = defineStore('photos', {
     error: '',
     activePhotoId: null as number | null,
     detailLoading: false,
+    selectionMode: false,
+    selectedPhotoIds: [] as number[],
+    bulkDeleting: false,
   }),
   getters: {
     availableTags: (state) =>
@@ -77,6 +80,9 @@ export const usePhotoStore = defineStore('photos', {
       this.page = 1
       this.activePhotoId = null
       this.error = ''
+      this.selectionMode = false
+      this.selectedPhotoIds = []
+      this.bulkDeleting = false
     },
     buildListPayload(): PhotoListParams {
       const payload: PhotoListParams = {
@@ -113,6 +119,13 @@ export const usePhotoStore = defineStore('photos', {
           fileUrl: toAbsolute(item.fileUrl),
           thumbnailUrl: toAbsolute(item.thumbnailUrl),
         }))
+        if (this.selectionMode && this.selectedPhotoIds.length) {
+          const availableIds = new Set(this.items.map((item) => item.id))
+          this.selectedPhotoIds = this.selectedPhotoIds.filter((id) => availableIds.has(id))
+          if (!this.selectedPhotoIds.length) {
+            this.selectionMode = false
+          }
+        }
         this.total = response.total
         if (this.page > this.totalPages) {
           this.page = this.totalPages
@@ -143,6 +156,45 @@ export const usePhotoStore = defineStore('photos', {
       this.sortOption = option
       this.page = 1
       await this.fetchPhotos()
+    },
+    setSelectionMode(enabled: boolean) {
+      this.selectionMode = enabled
+      if (!enabled) {
+        this.selectedPhotoIds = []
+      }
+    },
+    togglePhotoSelection(photoId: number) {
+      if (!this.selectionMode) {
+        return
+      }
+      if (this.selectedPhotoIds.includes(photoId)) {
+        this.selectedPhotoIds = this.selectedPhotoIds.filter((id) => id !== photoId)
+      } else {
+        this.selectedPhotoIds = [...this.selectedPhotoIds, photoId]
+      }
+    },
+    clearSelection() {
+      this.selectedPhotoIds = []
+    },
+    async bulkDeleteSelected() {
+      if (!this.selectedPhotoIds.length) {
+        return
+      }
+      this.bulkDeleting = true
+      let completed = false
+      try {
+        const targets = [...this.selectedPhotoIds]
+        for (const photoId of targets) {
+          await this.deletePhoto(photoId)
+        }
+        await this.fetchPhotos()
+        completed = true
+      } finally {
+        if (completed) {
+          this.setSelectionMode(false)
+        }
+        this.bulkDeleting = false
+      }
     },
     clearFilters() {
       this.query = ''
@@ -279,6 +331,12 @@ export const usePhotoStore = defineStore('photos', {
       try {
         await deletePhotoRequest(photoId)
         this.items = this.items.filter((item) => item.id !== photoId)
+        if (this.selectedPhotoIds.length) {
+          this.selectedPhotoIds = this.selectedPhotoIds.filter((id) => id !== photoId)
+          if (this.selectionMode && !this.selectedPhotoIds.length) {
+            this.selectionMode = false
+          }
+        }
         if (this.total > 0) {
           this.total = Math.max(0, this.total - 1)
         }

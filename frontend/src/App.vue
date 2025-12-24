@@ -30,6 +30,9 @@ const deleteDialogOpen = ref(false)
 
 const viewerItems = computed(() => photoStore.filteredItems)
 const isAuthReady = computed(() => userStore.authChecked)
+const selectionMode = computed(() => photoStore.selectionMode)
+const selectedPhotoIds = computed(() => photoStore.selectedPhotoIds)
+const bulkDeleting = computed(() => photoStore.bulkDeleting)
 
 watch(
   () => currentTheme.value,
@@ -92,6 +95,18 @@ const handleSelectPhoto = async ({ id, index }: { id: number; index: number }) =
 
 const handleChangeSort = (value: PhotoSortOption) => {
   photoStore.setSortOption(value).catch(() => undefined)
+}
+
+const handleToggleSelectionMode = (value: boolean) => {
+  photoStore.setSelectionMode(value)
+}
+
+const handleTogglePhotoSelection = (photoId: number) => {
+  photoStore.togglePhotoSelection(photoId)
+}
+
+const handleBulkDeleteSelected = () => {
+  photoStore.bulkDeleteSelected().catch(() => undefined)
 }
 
 const handleNavigate = (direction: 'prev' | 'next') => {
@@ -164,8 +179,14 @@ const handleDeleted = () => {
           :photos="photoStore.filteredItems"
           :loading="photoStore.loading"
           :sort-value="photoStore.sortOption"
+          :selection-mode="selectionMode"
+          :selected-ids="selectedPhotoIds"
+          :bulk-deleting="bulkDeleting"
           @select="handleSelectPhoto"
           @change-sort="handleChangeSort"
+          @toggle-selection-mode="handleToggleSelectionMode"
+          @toggle-photo-selection="handleTogglePhotoSelection"
+          @delete-selected="handleBulkDeleteSelected"
         />
         <div v-if="photoStore.totalPages > 1" class="pagination-shell">
           <v-pagination

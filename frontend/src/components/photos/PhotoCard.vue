@@ -1,19 +1,48 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { PhotoItem } from '../../types/photos'
 
-const props = defineProps<{ photo: PhotoItem }>()
-const emit = defineEmits<{ (e: 'select'): void }>()
+const props = defineProps<{
+  photo: PhotoItem
+  selectionMode?: boolean
+  selected?: boolean
+}>()
+const emit = defineEmits<{ (e: 'select'): void; (e: 'toggle-select'): void }>()
+
+const isSelectionMode = computed(() => !!props.selectionMode)
+const isSelected = computed(() => !!props.selected)
+
+const handleClick = () => {
+  if (props.selectionMode) {
+    emit('toggle-select')
+  } else {
+    emit('select')
+  }
+}
+
+const handleCheckboxClick = (event: MouseEvent) => {
+  event.stopPropagation()
+  emit('toggle-select')
+}
 </script>
 
 <template>
   <v-card
     class="photo-card"
+    :class="{ 'photo-card--selectable': isSelectionMode, 'photo-card--selected': isSelectionMode && isSelected }"
     rounded="xl"
     elevation="0"
     border
     variant="flat"
-    @click="emit('select')"
+    @click="handleClick"
   >
+    <v-checkbox-btn
+      v-if="isSelectionMode"
+      class="photo-card__checkbox"
+      color="primary"
+      :model-value="isSelected"
+      @click="handleCheckboxClick"
+    />
     <v-img
       :src="props.photo.thumbnailUrl || props.photo.fileUrl"
       :alt="props.photo.description ?? 'photo item'"
@@ -60,12 +89,38 @@ const emit = defineEmits<{ (e: 'select'): void }>()
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   border-color: var(--pm-border-subtle);
+  position: relative;
+}
+
+.photo-card--selectable {
+  cursor: default;
+}
+
+.photo-card--selected {
+  border-color: var(--v-primary-base, #1976d2);
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.3);
 }
 
 .photo-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
   border-color: var(--pm-border-strong);
+}
+
+.photo-card--selectable:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.photo-card__checkbox {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  padding: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 2;
 }
 
 .photo-card__body {
