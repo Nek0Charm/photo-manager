@@ -13,6 +13,7 @@ import LoginPanel from './components/auth/LoginPanel.vue'
 import { useUiStore } from './stores/ui'
 import { usePhotoStore } from './stores/photos'
 import { useUserStore } from './stores/user'
+import type { PhotoSortOption } from './types/photos'
 
 const uiStore = useUiStore()
 const photoStore = usePhotoStore()
@@ -89,6 +90,10 @@ const handleSelectPhoto = async ({ id, index }: { id: number; index: number }) =
   await photoStore.selectPhoto(id).catch(() => undefined)
 }
 
+const handleChangeSort = (value: PhotoSortOption) => {
+  photoStore.setSortOption(value).catch(() => undefined)
+}
+
 const handleNavigate = (direction: 'prev' | 'next') => {
   const items = viewerItems.value
   if (!items.length) return
@@ -155,7 +160,13 @@ const handleDeleted = () => {
         >
           {{ photoStore.error }}
         </v-alert>
-        <PhotoGallery :photos="photoStore.filteredItems" :loading="photoStore.loading" @select="handleSelectPhoto" />
+        <PhotoGallery
+          :photos="photoStore.filteredItems"
+          :loading="photoStore.loading"
+          :sort-value="photoStore.sortOption"
+          @select="handleSelectPhoto"
+          @change-sort="handleChangeSort"
+        />
         <div v-if="photoStore.totalPages > 1" class="pagination-shell">
           <v-pagination
             v-model="photoStore.page"

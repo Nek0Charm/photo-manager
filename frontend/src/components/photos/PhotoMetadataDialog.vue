@@ -158,9 +158,6 @@ const handleSave = async () => {
             {{ tag }}
           </v-chip>
         </div>
-        <p class="field-hint text-caption text-medium-emphasis">
-          标签将用于筛选与搜索，可直接点击右上角的 × 删除
-        </p>
       </v-card-text>
       <v-card-actions class="justify-end">
         <v-btn variant="text" :disabled="saving" @click="close">取消</v-btn>

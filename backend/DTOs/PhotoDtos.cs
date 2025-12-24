@@ -94,6 +94,8 @@ namespace Backend.DTOs
         public DateTime? From { get; set; }
 
         public DateTime? To { get; set; }
+
+        public string? Sort { get; set; }
     }
 
     public class PhotoDetailRequest

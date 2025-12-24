@@ -119,8 +119,16 @@ namespace Backend.Controllers
 
             var total = await query.CountAsync(cancellationToken);
 
+            var sortKey = request.Sort?.Trim().ToLowerInvariant();
+            query = sortKey switch
+            {
+                "createdasc" => query.OrderBy(p => p.CreatedAt),
+                "takendesc" => query.OrderByDescending(p => p.TakenAt ?? p.CreatedAt),
+                "takenasc" => query.OrderBy(p => p.TakenAt ?? p.CreatedAt),
+                _ => query.OrderByDescending(p => p.CreatedAt)
+            };
+
             var photos = await query
-                .OrderByDescending(p => p.TakenAt ?? p.CreatedAt)
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);

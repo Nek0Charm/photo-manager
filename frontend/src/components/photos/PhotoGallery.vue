@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import type { PhotoItem } from '../../types/photos'
+import { computed } from 'vue'
+import type { PhotoItem, PhotoSortOption } from '../../types/photos'
 import PhotoCard from './PhotoCard.vue'
 
-const props = defineProps<{ photos: PhotoItem[]; loading?: boolean }>()
-const emit = defineEmits<{ (e: 'select', payload: { id: number; index: number }): void }>()
+const props = defineProps<{ photos: PhotoItem[]; loading?: boolean; sortValue: PhotoSortOption }>()
+const emit = defineEmits<{
+  (e: 'select', payload: { id: number; index: number }): void
+  (e: 'change-sort', value: PhotoSortOption): void
+}>()
 
 const sortOptions = [
   { label: '最新上传', value: 'createdDesc' },
@@ -13,23 +16,9 @@ const sortOptions = [
   { label: '拍摄时间（旧→新）', value: 'takenAsc' },
 ] as const
 
-const sortValue = ref<(typeof sortOptions)[number]['value']>('createdDesc')
-
-const getTimestamp = (value?: string | null) => (value ? new Date(value).getTime() : 0)
-
-const sortedPhotos = computed(() => {
-  const list = [...props.photos]
-  switch (sortValue.value) {
-    case 'createdAsc':
-      return list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-    case 'takenDesc':
-      return list.sort((a, b) => getTimestamp(b.takenAt) - getTimestamp(a.takenAt))
-    case 'takenAsc':
-      return list.sort((a, b) => getTimestamp(a.takenAt) - getTimestamp(b.takenAt))
-    case 'createdDesc':
-    default:
-      return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  }
+const sortValueProxy = computed({
+  get: () => props.sortValue,
+  set: (value) => emit('change-sort', value),
 })
 </script>
 
@@ -41,7 +30,7 @@ const sortedPhotos = computed(() => {
         排序
       </div>
       <v-select
-        v-model="sortValue"
+        v-model="sortValueProxy"
         :items="sortOptions"
         item-title="label"
         item-value="value"
@@ -68,7 +57,7 @@ const sortedPhotos = computed(() => {
     </div>
     <div v-else class="gallery-grid">
       <PhotoCard
-        v-for="(photo, index) in sortedPhotos"
+        v-for="(photo, index) in props.photos"
         :key="photo.id"
         :photo="photo"
         @select="emit('select', { id: photo.id, index })"

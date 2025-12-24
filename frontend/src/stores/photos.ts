@@ -7,7 +7,14 @@ import {
   updatePhotoMetadata as updatePhotoMetadataRequest,
   deletePhoto as deletePhotoRequest,
 } from '../services/photos'
-import type { PhotoEditPayload, PhotoItem, PhotoListParams, PhotoMetadataPayload, UploadPayload } from '../types/photos'
+import type {
+  PhotoEditPayload,
+  PhotoItem,
+  PhotoListParams,
+  PhotoMetadataPayload,
+  PhotoSortOption,
+  UploadPayload,
+} from '../types/photos'
 import { getErrorMessage } from '../utils/errors'
 import { API_ASSET_BASE } from '../services/http'
 
@@ -32,6 +39,7 @@ export const usePhotoStore = defineStore('photos', {
     total: 0,
     page: 1,
     pageSize: 20,
+    sortOption: 'createdDesc' as PhotoSortOption,
     query: '',
     selectedTags: [] as string[],
     dateRange: { start: '', end: '' } as DateRange,
@@ -74,6 +82,7 @@ export const usePhotoStore = defineStore('photos', {
       const payload: PhotoListParams = {
         page: this.page,
         pageSize: this.pageSize,
+        sort: this.sortOption,
       }
 
       const keyword = this.query.trim()
@@ -126,6 +135,14 @@ export const usePhotoStore = defineStore('photos', {
     },
     setPage(page: number) {
       this.page = page
+    },
+    async setSortOption(option: PhotoSortOption) {
+      if (this.sortOption === option) {
+        return
+      }
+      this.sortOption = option
+      this.page = 1
+      await this.fetchPhotos()
     },
     clearFilters() {
       this.query = ''

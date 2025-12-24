@@ -16,6 +16,8 @@ export interface PhotoListResponse {
   items: PhotoItem[]
 }
 
+export type PhotoSortOption = 'createdDesc' | 'createdAsc' | 'takenDesc' | 'takenAsc'
+
 export interface PhotoListParams {
   page: number
   pageSize: number
@@ -23,6 +25,7 @@ export interface PhotoListParams {
   tag?: string
   from?: string
   to?: string
+  sort?: PhotoSortOption
 }
 
 export interface UploadPayload {
