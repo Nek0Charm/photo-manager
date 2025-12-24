@@ -28,7 +28,7 @@ const editorOpen = ref(false)
 const metadataDialogOpen = ref(false)
 const deleteDialogOpen = ref(false)
 
-const viewerItems = computed(() => photoStore.filteredItems)
+const viewerItems = computed(() => photoStore.items)
 const isAuthReady = computed(() => userStore.authChecked)
 const selectionMode = computed(() => photoStore.selectionMode)
 const selectedPhotoIds = computed(() => photoStore.selectedPhotoIds)
@@ -176,7 +176,7 @@ const handleDeleted = () => {
           {{ photoStore.error }}
         </v-alert>
         <PhotoGallery
-          :photos="photoStore.filteredItems"
+          :photos="photoStore.items"
           :loading="photoStore.loading"
           :sort-value="photoStore.sortOption"
           :selection-mode="selectionMode"

@@ -102,9 +102,12 @@ namespace Backend.Controllers
             if (!string.IsNullOrWhiteSpace(request.Keyword))
             {
                 var keyword = request.Keyword.Trim();
+                var likePattern = $"%{keyword}%";
                 query = query.Where(p =>
-                    (p.Description != null && EF.Functions.Like(p.Description, $"%{keyword}%")) ||
-                    EF.Functions.Like(p.FilePath, $"%{keyword}%"));
+                    (p.Description != null && EF.Functions.Like(p.Description, likePattern)) ||
+                    (p.Location != null && EF.Functions.Like(p.Location, likePattern)) ||
+                    EF.Functions.Like(p.FilePath, likePattern) ||
+                    p.PhotoTags.Any(pt => pt.Tag != null && EF.Functions.Like(pt.Tag.Name, likePattern)));
             }
 
             if (request.From.HasValue)
