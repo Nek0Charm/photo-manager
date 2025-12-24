@@ -43,7 +43,18 @@ export const usePhotoStore = defineStore('photos', {
   getters: {
     availableTags: (state) =>
       [...new Set(state.items.flatMap((item) => item.tags))].sort((a, b) => a.localeCompare(b)),
-    filteredItems: (state) => state.items,
+    filteredItems: (state) => {
+      const keyword = state.query.trim().toLowerCase()
+      if (!keyword) {
+        return state.items
+      }
+      return state.items.filter((item) => {
+        const descriptionMatch = item.description?.toLowerCase().includes(keyword)
+        const locationMatch = item.location?.toLowerCase().includes(keyword)
+        const tagMatch = item.tags.some((tag) => tag.toLowerCase().includes(keyword))
+        return descriptionMatch || locationMatch || tagMatch
+      })
+    },
     activePhoto(state) {
       return state.items.find((photo) => photo.id === state.activePhotoId) ?? null
     },

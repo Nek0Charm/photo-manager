@@ -1,0 +1,27 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C4DFF" />
+      <stop offset="1" stop-color="#3DD9D6" />
+    </linearGradient>
+    <linearGradient id="lens" x1="48" y1="48" x2="88" y2="88" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F9FBFF" />
+      <stop offset="1" stop-color="#7AC8FF" />
+    </linearGradient>
+    <linearGradient id="mountain" x1="28" y1="78" x2="96" y2="78" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F6F8FF" stop-opacity="0.8" />
+      <stop offset="1" stop-color="#BEE5FF" stop-opacity="0.95" />
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="104" height="104" rx="28" fill="url(#bg)" />
+  <rect x="22" y="34" width="84" height="60" rx="18" fill="#081225" fill-opacity="0.25" />
+  <rect x="26" y="38" width="76" height="52" rx="16" fill="#0F1E3B" fill-opacity="0.55" stroke="rgba(255,255,255,0.35)" stroke-width="2" />
+  <circle cx="36" cy="48" r="6" fill="#7CDAFF" />
+  <rect x="44" y="42" width="18" height="6" rx="3" fill="#F9FBFF" fill-opacity="0.85" />
+  <circle cx="80" cy="64" r="22" fill="url(#lens)" />
+  <circle cx="80" cy="64" r="14" fill="#0E1C35" fill-opacity="0.8" stroke="rgba(255,255,255,0.45)" stroke-width="2" />
+  <circle cx="80" cy="64" r="8" fill="#061024" />
+  <path d="M32 86L50 64L62 74L76 56L96 86Z" fill="url(#mountain)" fill-opacity="0.9" />
+  <circle cx="98" cy="38" r="8" fill="#FFFFFF" fill-opacity="0.75" />
+  <path d="M98 31L100 36L105 37L101 41L102 47L98 44L94 47L95 41L91 37L96 36Z" fill="#FFFFFF" fill-opacity="0.85" />
+</svg>
