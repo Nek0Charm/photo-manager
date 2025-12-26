@@ -74,7 +74,9 @@ const addTag = () => {
   newTag.value = ''
 }
 
-const removeTag = (target: string) => {
+const removeTag = (target: string, event?: MouseEvent) => {
+  event?.stopPropagation()
+  event?.preventDefault()
   tags.value = tags.value.filter((tag) => tag !== target)
 }
 
@@ -153,7 +155,7 @@ const handleSave = async () => {
             variant="tonal"
             label
             closable
-            @click:close="removeTag(tag)"
+            @click:close="removeTag(tag, $event)"
           >
             {{ tag }}
           </v-chip>

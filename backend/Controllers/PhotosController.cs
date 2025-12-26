@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.IO;
+using System.Linq;
 
 namespace Backend.Controllers
 {
@@ -317,10 +319,39 @@ namespace Backend.Controllers
 
             if (request.Tags != null)
             {
-                RemoveTags(photo, TagType.Manual);
-                foreach (var tag in ParseTags(request.Tags))
+                var normalizedTags = ParseTags(request.Tags)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                var normalizedSet = new HashSet<string>(normalizedTags, StringComparer.OrdinalIgnoreCase);
+
+                var existingRelations = photo.PhotoTags
+                    .Where(pt => pt.Tag != null)
+                    .ToList();
+
+                foreach (var relation in existingRelations)
                 {
+                    var name = relation.Tag?.Name;
+                    if (name != null && !normalizedSet.Contains(name))
+                    {
+                        _context.PhotoTags.Remove(relation);
+                        photo.PhotoTags.Remove(relation);
+                    }
+                }
+
+                var existingNames = photo.PhotoTags
+                    .Where(pt => pt.Tag != null && pt.Tag!.Name != null)
+                    .Select(pt => pt.Tag!.Name)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var tag in normalizedTags)
+                {
+                    if (existingNames.Contains(tag))
+                    {
+                        continue;
+                    }
+
                     await AttachTagAsync(photo, tag, TagType.Manual, cancellationToken);
+                    existingNames.Add(tag);
                 }
             }
 
