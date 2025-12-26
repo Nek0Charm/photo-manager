@@ -39,6 +39,11 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 
 builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.Configure<AiTaggingOptions>(builder.Configuration.GetSection("AiTagging"));
+builder.Services.AddSingleton<IAiVisionTagGenerator, OpenAiVisionTagGenerator>();
+builder.Services.AddSingleton<AiTaggingBackgroundService>();
+builder.Services.AddSingleton<IAiTaggingQueue>(sp => sp.GetRequiredService<AiTaggingBackgroundService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AiTaggingBackgroundService>());
 
 builder.Services.AddEndpointsApiExplorer();
 

@@ -17,12 +17,14 @@ namespace Backend.Controllers
         private readonly AppDbContext _context;
         private readonly IImageService _imageService;
         private readonly IWebHostEnvironment _environment;
+        private readonly IAiTaggingQueue _aiTaggingQueue;
 
-        public PhotosController(AppDbContext context, IImageService imageService, IWebHostEnvironment environment)
+        public PhotosController(AppDbContext context, IImageService imageService, IWebHostEnvironment environment, IAiTaggingQueue aiTaggingQueue)
         {
             _context = context;
             _imageService = imageService;
             _environment = environment;
+            _aiTaggingQueue = aiTaggingQueue;
         }
 
         private int? CurrentUserId => HttpContext.Session.GetInt32("UserId");
@@ -74,6 +76,7 @@ namespace Backend.Controllers
 
             _context.Photos.Add(photo);
             await _context.SaveChangesAsync(cancellationToken);
+            await QueueAiTaggingAsync(photo);
 
             return Ok(ToDto(photo));
         }
@@ -234,6 +237,7 @@ namespace Backend.Controllers
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
+                await QueueAiTaggingAsync(newPhoto);
 
                 return Ok(ToDto(newPhoto));
             }
@@ -282,6 +286,7 @@ namespace Backend.Controllers
             }
 
             await _context.SaveChangesAsync(cancellationToken);
+            await QueueAiTaggingAsync(photo);
 
             return Ok(ToDto(photo));
         }
@@ -394,6 +399,12 @@ namespace Backend.Controllers
             }
         }
 
+        private ValueTask QueueAiTaggingAsync(Photo photo)
+        {
+            var target = ResolveAbsolutePath(photo.ThumbnailPath) ?? ResolveAbsolutePath(photo.FilePath);
+            return _aiTaggingQueue.QueueAsync(photo.Id, target);
+        }
+
         private void DeletePhysicalFile(string? relativePath)
         {
             if (string.IsNullOrWhiteSpace(relativePath))
@@ -409,6 +420,17 @@ namespace Backend.Controllers
             {
                 System.IO.File.Delete(target);
             }
+        }
+
+        private string? ResolveAbsolutePath(string? relativePath)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath))
+            {
+                return null;
+            }
+
+            var sanitized = relativePath.TrimStart('\\', '/').Replace('/', Path.DirectorySeparatorChar);
+            return Path.Combine(ResolveWebRoot(), sanitized);
         }
 
         private string ResolveWebRoot()

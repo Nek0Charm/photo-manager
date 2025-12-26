@@ -4,6 +4,7 @@ env.sh
 !readme*.md
 !README*.md
 !Readme*.md
+.env
 
 /*.png
 /*.html
