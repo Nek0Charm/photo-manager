@@ -1,28 +1,35 @@
-version: "3.9"
-
 services:
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
-    ports:
-      - "5151:5151"
+      context: ./backend
+      dockerfile: Dockerfile
+    image: photo-manager-backend
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Data Source=/data/app.db
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      Cors__Origins__0: http://localhost:5173
+      Cors__Origins__1: http://localhost:8080
+    ports:
+      - "5000:8080"
     volumes:
-      - backend-data:/data
+      - ./backend/app.db:/app/app.db
+      - ./backend/wwwroot/uploads:/app/wwwroot/uploads
+    networks:
+      - photo-net
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://backend:5151/api}
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: photo-manager-frontend
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     ports:
-      - "4173:80"
+      - "8080:80"
+    networks:
+      - photo-net
 
-volumes:
-  backend-data:
+networks:
+  photo-net:
+    driver: bridge

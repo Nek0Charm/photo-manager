@@ -1,17 +1,24 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-alpine AS build
+ARG NODE_BASE_IMAGE=docker.io/library/node:20-alpine
+ARG NGINX_BASE_IMAGE=docker.io/library/nginx:1.27-alpine
+
+FROM ${NODE_BASE_IMAGE} AS build
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
-COPY frontend/pnpm-lock.yaml frontend/package.json ./
+
+ENV NODE_ENV=production
+
+RUN apk add --no-cache libc6-compat
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
-COPY frontend/ ./
-ARG VITE_API_BASE_URL=http://backend:5151/api
-ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
+COPY . .
 RUN pnpm run build
 
-FROM nginx:1.27-alpine AS runtime
-COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+FROM ${NGINX_BASE_IMAGE} AS runtime
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
+
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]

@@ -1,16 +1,23 @@
 # syntax=docker/dockerfile:1
 
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /src
-COPY backend/*.csproj ./
-COPY backend/ ./
-RUN dotnet restore
-RUN dotnet publish -c Release -o /app/publish
+ARG DOTNET_SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:9.0
+ARG DOTNET_ASP_IMAGE=mcr.microsoft.com/dotnet/aspnet:9.0
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+FROM ${DOTNET_SDK_IMAGE} AS build
+WORKDIR /src
+
+COPY backend.csproj ./
+RUN dotnet restore
+
+COPY . .
+RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
+
+FROM ${DOTNET_ASP_IMAGE} AS final
 WORKDIR /app
-COPY --from=build /app/publish ./
-RUN mkdir -p /data
-ENV ASPNETCORE_URLS=http://0.0.0.0:5151
-EXPOSE 5151
+ENV ASPNETCORE_URLS=http://+:8080 \
+    ASPNETCORE_ENVIRONMENT=Production
+
+EXPOSE 8080
+
+COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "backend.dll"]

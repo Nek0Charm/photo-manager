@@ -66,11 +66,11 @@ public sealed class OpenAiVisionTagGenerator : IAiVisionTagGenerator
         var messages = new List<ChatMessage>
         {
             new SystemChatMessage(
-                "你是一位资深图片策展人。请分析图片并返回简洁的中文标签，用于描述主要主体、背景或情绪。"
-                +"请回复一个包含 1 到 3 个项目的 JSON 数组，例如 [\"日落\", \"群山\"]。不要包含解释或任何其他文本。"),
+                "你是一位资深图片策展人与视觉分类专家。请只输出能够精确描述主要主体、关键场景元素或鲜明情绪的中文名词标签，每个标签不超过 6 个汉字，避免如‘自然’‘风景’等泛泛词汇。"
+                +"请按照重要性输出 1 到 3 个唯一标签，使用 JSON 数组格式（例如 [\"日落\",\"雪山\"]），不得包含解释、序号或额外文本。"),
             new UserChatMessage(
                 ChatMessageContentPart.CreateTextPart(
-                    "Inspect this image and return only the JSON array of tags exactly as requested above."),
+                    "Inspect this image and return only that JSON array of concise tags; reply [] if no meaningful subject is visible."),
                 ChatMessageContentPart.CreateImagePart(imageData, mimeType))
         };
 

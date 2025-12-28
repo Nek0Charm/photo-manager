@@ -111,7 +111,9 @@ namespace Backend.Services
                 var geo = gps?.GetGeoLocation();
                 if (geo != null && !geo.IsZero)
                 {
-                    location = $"{geo.Latitude:F4},{geo.Longitude:F4}";
+                    var latDirection = geo.Latitude >= 0 ? "N" : "S";
+                    var lonDirection = geo.Longitude >= 0 ? "E" : "W";
+                    location = $"{Math.Abs(geo.Latitude):F2}{latDirection},{Math.Abs(geo.Longitude):F2}{lonDirection}";
                     exifTags.Add(location);
                 }
 
