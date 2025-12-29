@@ -7,7 +7,7 @@ import { useUiStore } from '../../stores/ui'
 import { usePhotoStore } from '../../stores/photos'
 import { useUserStore } from '../../stores/user'
 
-const emit = defineEmits<{ (e: 'open-upload'): void }>()
+const emit = defineEmits<{ (e: 'open-upload'): void; (e: 'open-ai-settings'): void }>()
 
 const SEARCH_DEBOUNCE_MS = 500
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -104,6 +104,8 @@ onBeforeUnmount(() => {
         </v-btn>
       </template>
       <v-list density="compact">
+        <v-list-item title="AI 标签配置" prepend-icon="mdi-robot-outline" @click="emit('open-ai-settings')" />
+        <v-divider class="my-1" />
         <v-list-item title="退出登录" prepend-icon="mdi-logout" @click="handleLogout" />
       </v-list>
     </v-menu>

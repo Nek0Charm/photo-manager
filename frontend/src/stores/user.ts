@@ -3,6 +3,7 @@ import type { User } from '../types/user'
 import type { LoginPayload, RegisterPayload } from '../services/auth'
 import { getCurrentUser, login as loginApi, logout as logoutApi, register as registerApi } from '../services/auth'
 import { getErrorMessage } from '../utils/errors'
+import { useAiSettingsStore } from './aiSettings'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -56,6 +57,7 @@ export const useUserStore = defineStore('user', {
     async logout() {
       await logoutApi()
       this.user = null
+      useAiSettingsStore().reset()
     },
   },
 })

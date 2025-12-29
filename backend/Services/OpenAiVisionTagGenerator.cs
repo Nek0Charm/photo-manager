@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using OpenAI;
 using OpenAI.Chat;
 
@@ -26,25 +25,22 @@ public sealed class AiTaggingOptions
 
 public interface IAiVisionTagGenerator
 {
-    Task<IReadOnlyList<string>> GenerateTagsAsync(string absoluteFilePath, CancellationToken cancellationToken);
+    Task<IReadOnlyList<string>> GenerateTagsAsync(string absoluteFilePath, AiTaggingOptions options, CancellationToken cancellationToken);
 }
 
 public sealed class OpenAiVisionTagGenerator : IAiVisionTagGenerator
 {
-    private readonly IOptionsMonitor<AiTaggingOptions> _optionsMonitor;
     private readonly ILogger<OpenAiVisionTagGenerator> _logger;
 
-    public OpenAiVisionTagGenerator(
-        IOptionsMonitor<AiTaggingOptions> optionsMonitor,
-        ILogger<OpenAiVisionTagGenerator> logger)
+    public OpenAiVisionTagGenerator(ILogger<OpenAiVisionTagGenerator> logger)
     {
-        _optionsMonitor = optionsMonitor;
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<string>> GenerateTagsAsync(string absoluteFilePath, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<string>> GenerateTagsAsync(string absoluteFilePath, AiTaggingOptions options, CancellationToken cancellationToken)
     {
-        var options = _optionsMonitor.CurrentValue;
+        ArgumentNullException.ThrowIfNull(options);
+
         if (string.IsNullOrWhiteSpace(options.ApiKey))
         {
             _logger.LogDebug("AI tagging skipped because API key is missing.");
@@ -57,7 +53,8 @@ public sealed class OpenAiVisionTagGenerator : IAiVisionTagGenerator
             return Array.Empty<string>();
         }
 
-        var client = CreateClient(options);
+        var normalizedOptions = NormalizeOptions(options);
+        var client = CreateClient(normalizedOptions);
 
         await using var stream = File.OpenRead(absoluteFilePath);
         var imageData = await BinaryData.FromStreamAsync(stream, cancellationToken);
@@ -78,13 +75,31 @@ public sealed class OpenAiVisionTagGenerator : IAiVisionTagGenerator
         {
             var completion = await client.CompleteChatAsync(messages, cancellationToken: cancellationToken);
             var text = completion.Value.Content.FirstOrDefault(part => !string.IsNullOrWhiteSpace(part.Text))?.Text;
-            return ParseTags(text, options.MaxTags);
+            return ParseTags(text, normalizedOptions.MaxTags);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "OpenAI vision tagging failed for {Path}", absoluteFilePath);
             return Array.Empty<string>();
         }
+    }
+
+    private static AiTaggingOptions NormalizeOptions(AiTaggingOptions options)
+    {
+        var trimmedKey = options.ApiKey?.Trim() ?? string.Empty;
+        var normalizedModel = string.IsNullOrWhiteSpace(options.Model) ? "gpt-4o-mini" : options.Model.Trim();
+        var normalizedProvider = string.IsNullOrWhiteSpace(options.Provider) ? "OpenAI" : options.Provider.Trim();
+        var normalizedEndpoint = string.IsNullOrWhiteSpace(options.Endpoint) ? null : options.Endpoint.Trim();
+        var normalizedMaxTags = options.MaxTags <= 0 ? 3 : options.MaxTags;
+
+        return new AiTaggingOptions
+        {
+            Provider = normalizedProvider,
+            ApiKey = trimmedKey,
+            Model = normalizedModel,
+            Endpoint = normalizedEndpoint,
+            MaxTags = normalizedMaxTags
+        };
     }
 
     private static ChatClient CreateClient(AiTaggingOptions options)

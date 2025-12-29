@@ -39,7 +39,6 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 
 builder.Services.AddScoped<IImageService, ImageService>();
-builder.Services.Configure<AiTaggingOptions>(builder.Configuration.GetSection("AiTagging"));
 builder.Services.AddSingleton<IAiVisionTagGenerator, OpenAiVisionTagGenerator>();
 builder.Services.AddSingleton<AiTaggingBackgroundService>();
 builder.Services.AddSingleton<IAiTaggingQueue>(sp => sp.GetRequiredService<AiTaggingBackgroundService>());
@@ -124,4 +123,22 @@ static void EnsurePhotoSchema(AppDbContext db)
     );");
 
     db.Database.ExecuteSqlRaw(@"CREATE INDEX IF NOT EXISTS ""IX_PhotoTags_TagId"" ON ""PhotoTags"" (""TagId"");");
+
+    EnsureUserAiSettingsSchema(db);
+}
+
+static void EnsureUserAiSettingsSchema(AppDbContext db)
+{
+    db.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ""UserAiSettings"" (
+        ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_UserAiSettings"" PRIMARY KEY AUTOINCREMENT,
+        ""UserId"" INTEGER NOT NULL,
+        ""Provider"" TEXT NOT NULL DEFAULT 'OpenAI',
+        ""Model"" TEXT NOT NULL DEFAULT 'gpt-4o-mini',
+        ""Endpoint"" TEXT NULL,
+        ""ApiKey"" TEXT NOT NULL,
+        ""UpdatedAt"" TEXT NOT NULL,
+        CONSTRAINT ""FK_UserAiSettings_Users_UserId"" FOREIGN KEY (""UserId"") REFERENCES ""Users"" (""Id"") ON DELETE CASCADE
+    );");
+
+    db.Database.ExecuteSqlRaw(@"CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserAiSettings_UserId"" ON ""UserAiSettings"" (""UserId"");");
 }

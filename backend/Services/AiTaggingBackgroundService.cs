@@ -67,13 +67,6 @@ public sealed class AiTaggingBackgroundService : BackgroundService, IAiTaggingQu
     {
         try
         {
-            var tags = await _tagGenerator.GenerateTagsAsync(job.AbsoluteFilePath, cancellationToken);
-            if (tags.Count == 0)
-            {
-                _logger.LogDebug("No AI tags generated for photo {PhotoId}", job.PhotoId);
-                return;
-            }
-
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
@@ -85,6 +78,32 @@ public sealed class AiTaggingBackgroundService : BackgroundService, IAiTaggingQu
             if (photo == null)
             {
                 _logger.LogWarning("Photo {PhotoId} no longer exists while applying AI tags", job.PhotoId);
+                return;
+            }
+
+            var aiSettings = await db.UserAiSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.UserId == photo.UserId, cancellationToken);
+
+            if (aiSettings == null || string.IsNullOrWhiteSpace(aiSettings.ApiKey))
+            {
+                _logger.LogDebug("Skipping AI tagging for photo {PhotoId} because user {UserId} has no API key configured", job.PhotoId, photo.UserId);
+                return;
+            }
+
+            var options = new AiTaggingOptions
+            {
+                Provider = aiSettings.Provider,
+                ApiKey = aiSettings.ApiKey,
+                Model = aiSettings.Model,
+                Endpoint = aiSettings.Endpoint,
+                MaxTags = 3
+            };
+
+            var tags = await _tagGenerator.GenerateTagsAsync(job.AbsoluteFilePath, options, cancellationToken);
+            if (tags.Count == 0)
+            {
+                _logger.LogDebug("No AI tags generated for photo {PhotoId}", job.PhotoId);
                 return;
             }
 

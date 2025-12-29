@@ -11,6 +11,7 @@ namespace Backend.Data
         public DbSet<Photo> Photos { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<PhotoTag> PhotoTags { get; set; }
+        public DbSet<UserAiSetting> UserAiSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -24,6 +25,16 @@ namespace Backend.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+            modelBuilder.Entity<UserAiSetting>()
+                .HasIndex(s => s.UserId)
+                .IsUnique();
+
+            modelBuilder.Entity<UserAiSetting>()
+                .HasOne(s => s.User)
+                .WithOne(u => u.AiSetting)
+                .HasForeignKey<UserAiSetting>(s => s.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Tag>()
                 .HasIndex(t => new { t.Name, t.Type })
