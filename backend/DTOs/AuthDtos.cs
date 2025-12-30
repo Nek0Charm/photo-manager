@@ -5,7 +5,7 @@ namespace Backend.DTOs
     public class RegisterRequest
     {
         [Required]
-        [MinLength(6, ErrorMessage = "用户名长度至少为6位")]
+        [MinLength(2, ErrorMessage = "用户名长度至少为2位")]
         public string Username { get; set; } = string.Empty;
 
         [Required]

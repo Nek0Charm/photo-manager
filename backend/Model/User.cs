@@ -7,7 +7,7 @@ namespace Backend.Models
         public int Id { get; set; }
 
         [Required]
-        [MinLength(6, ErrorMessage = "用户名长度必须大于6位")]
+        [MinLength(2, ErrorMessage = "用户名长度必须大于2位")]
         public string Username { get; set; } = string.Empty;
 
         [Required]
