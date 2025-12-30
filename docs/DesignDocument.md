@@ -1,18 +1,16 @@
 # 设计文档
 
-本文档基于当前代码仓库（前端：`/frontend`，后端：`/backend`）的实际实现撰写，描述系统的目标、架构、核心模块、接口契约与关键流程，便于后续迭代与协作。
-
 ---
 
 ## 1. 项目概述
 
-Photo Manager 是一套跨平台的照片资产管理系统，支持：
+Photo Manager 是一套跨平台的照片管理系统，支持：
 
 - 账号注册、登录、会话维持（基于服务端 Session）。
 - 多图上传、EXIF 解析、缩略图生成与基础信息维护。
 - 手动标签、EXIF 标签、AI 自动标签（OpenAI Vision）共存。
 - 自然语言检索（MCP 兼容接口）与常规条件筛选（关键词、标签、日期、排序）。
-- Web 端交互（单页面 Vue 3 + Vuetify 应用），包含批量删除、在线裁剪/滤镜编辑、AI 配置管理等功能。
+- Web 端交互（单页面 Vue 3 + Vuetify 应用），包含批量删除、在线裁剪/滤镜编辑、AI 分析等功能。
 
 ---
 
@@ -58,7 +56,7 @@ Photo Manager 是一套跨平台的照片资产管理系统，支持：
 - **会话检查**（`GET /api/auth/me`）与**登出**（`POST /api/auth/logout`）用于前端刷新态。
 - 前端 `LoginPanel` 以 Tab 切换登录/注册，复用 `useUserStore`，登录成功后触发 `photoStore.fetchPhotos()`。
 
-### 3.2 图片资产（`PhotosController`, `ImageService`, `frontend/stores/photos.ts`）
+### 3.2 图片管理（`PhotosController`, `ImageService`, `frontend/stores/photos.ts`）
 
 1. 上传接口 `POST /api/photos/upload`
    - 限制 50MB (`[RequestSizeLimit]`)。
@@ -270,25 +268,3 @@ sequenceDiagram
    - `./backend/app.db:/app/app.db`
    - `./backend/wwwroot/uploads:/app/wwwroot/uploads`
 3. **配置密钥**：OpenAI API Key 由用户登录后在“AI 标签配置”对话框中填写，存储于 `UserAiSettings.ApiKey`。
-
----
-
-## 9. 测试与质量保障
-
-| 层级 | 涉及模块 | 建议 |
-| --- | --- | --- |
-| 单元测试 | `ImageService`、`AiTaggingBackgroundService`、`McpController` 的评分逻辑 | 使用 xUnit + EF Core InMemory/Sqlite in-memory；验证 EXIF 解析分支、AI 标签覆盖规则、MCP 分值排序 |
-| 集成测试 | Auth/Photos/AiSettings API | 使用 `WebApplicationFactory` 或 Swagger/REST Client 脚本 (`backend/backend.http`) 自动化验证 |
-| 前端交互 | `PhotoEditor`, `UploadFab`, 批量删除流程 | 可用 Vitest + Vue Test Utils 或 Cypress 做端到端冒烟 |
-| 手工验收 | 大文件上传（>10MB）、AI 配置缺失/存在的两种分支、MCP 查询 | 确保用户体验覆盖关键路径 |
-
-当前仓库尚未包含自动化测试目录，上述建议为后续扩展指引。
-
----
-
-## 10. 后续迭代建议
-
-1. MCP 检索可接入向量数据库或 OpenAI Embedding，以提升语义效果。
-2. 前端可拆分为多路由页面（登录/库/设置）并增加离线提示。
-
-以上内容与仓库现状一致，可作为开发、测试与部署的权威设计描述。

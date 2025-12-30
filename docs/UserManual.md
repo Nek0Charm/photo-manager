@@ -1,8 +1,5 @@
 # 使用手册
 
-本手册面向 Photo Manager 的日常使用者与运维人员，结合《设计文档》介绍如何在本地或容器环境下部署系统，并完成账号管理、照片维护、AI 标签配置与 MCP 检索等常见操作。
-
----
 
 ## 1. 环境要求
 
@@ -148,27 +145,10 @@ docker-compose up -d --build
 
    | 工具 ID | 参数 | 说明 |
    | --- | --- | --- |
-   | `search_gallery_photos` | `query`(必填), `limit?`, `from?`, `to?` | 返回符合 MCP 规范的搜索结果列表，供 AI 直接使用。 |
+   | `search_gallery_photos` | `query`(必填), `limit?`, `from?`, `to?`, `filters?` | 返回符合 MCP 规范的搜索结果列表，供 AI 直接使用。 |
    | `get_photo_details` | `photoId` | 返回指定照片的尺寸、时间、地点与标签等元数据。 |
 
 > 注意：MCP 工具同样依赖 Session，过期后需重新登录并更新配置中的 Cookie。
-
-### 7.2 REST 回退接口
-
-若需要脚本方式访问，可继续调用现有的 HTTP 接口：
-
-```bash
-curl -b cookies.txt -X POST http://localhost:5151/api/mcp/search \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "海边日落",
-    "limit": 5,
-    "from": "2024-01-01",
-    "to": "2024-12-31"
-  }'
-```
-
-返回值同样包含 MCP 规范的 `documents[]`，每条带有 `documentId/score/content/metadata`，其中的 `thumbnailUrl/fileUrl` 可直接用于外部展示。
 
 ---
 
@@ -182,13 +162,3 @@ curl -b cookies.txt -X POST http://localhost:5151/api/mcp/search \
 | MCP 返回空结果 | 当前查询用户仅能检索自己的照片，确认 Session 是否有效及时间范围/关键词是否匹配。 |
 
 ---
-
-## 9. 术语速查
-
-- **PhotoItemDto**：前端使用的标准照片数据结构，包含文件路径、尺寸、标签、描述等。
-- **UploadFab**：前端右下角的“上传”浮动按钮。
-- **PhotoViewer**：灯箱式查看器，同时承载编辑、删除入口。
-- **AiTaggingBackgroundService**：后端托管服务，异步生成 AI 标签。
-- **MCP**：Model Context Protocol，对接外部 LLM 工具的检索接口。
-
-遵循以上指南即可完成 Photo Manager 的安装、配置与日常使用。如需了解架构细节，可参阅 `docs/DesignDocument.md`。
