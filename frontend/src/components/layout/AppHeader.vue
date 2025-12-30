@@ -18,6 +18,7 @@ const userStore = useUserStore()
 const { query } = storeToRefs(photoStore)
 const { user } = storeToRefs(userStore)
 const { smAndDown } = useDisplay()
+const isMobile = computed(() => smAndDown.value)
 
 const displayUsername = computed(() => {
   if (!user.value?.username) return ''
@@ -72,12 +73,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <v-app-bar flat height="72" class="app-header" color="surface">
+  <v-app-bar flat class="app-header" color="surface">
     <v-toolbar-title class="logo-title font-weight-bold text-h6 d-flex align-center">
       <img :src="logoMark" alt="Photo Manager logo" class="logo-mark" />
     </v-toolbar-title>
-    <v-spacer />
-    <div class="search-field flex-grow-1">
+    <div v-if="!isMobile" class="search-field flex-grow-1">
       <v-text-field
         v-model="query"
         density="comfortable"
@@ -88,36 +88,47 @@ onBeforeUnmount(() => {
         @keydown.enter.prevent="runSearch"
       />
     </div>
-    <v-btn
-      class="ml-4"
-      icon
-      :title="themeLabel"
-      variant="text"
-      @click="uiStore.toggleTheme"
-    >
-      <v-icon :icon="themeIcon" />
-    </v-btn>
-    <v-menu v-if="user" transition="fade-transition" offset-y>
-      <template #activator="{ props: menuProps }">
-        <v-btn class="ml-2" v-bind="menuProps" variant="tonal" prepend-icon="mdi-account" :title="user?.username || ''">
-          {{ displayUsername }}
-        </v-btn>
-      </template>
-      <v-list density="compact">
-        <v-list-item title="AI 标签配置" prepend-icon="mdi-robot-outline" @click="emit('open-ai-settings')" />
-        <v-divider class="my-1" />
-        <v-list-item title="退出登录" prepend-icon="mdi-logout" @click="handleLogout" />
-      </v-list>
-    </v-menu>
-    <v-btn
-      class="ml-2"
-      color="primary"
-      prepend-icon="mdi-upload"
-      :disabled="!userStore.isAuthenticated"
-      @click="emit('open-upload')"
-    >
-      快速上传
-    </v-btn>
+    <div class="header-actions" :class="{ 'header-actions--mobile': isMobile }">
+      <v-btn icon :title="themeLabel" variant="text" @click="uiStore.toggleTheme">
+        <v-icon :icon="themeIcon" />
+      </v-btn>
+      <v-menu v-if="user" transition="fade-transition" offset-y>
+        <template #activator="{ props: menuProps }">
+          <v-btn v-bind="menuProps" variant="tonal" prepend-icon="mdi-account" :title="user?.username || ''">
+            {{ displayUsername }}
+          </v-btn>
+        </template>
+        <v-list density="compact">
+          <v-list-item title="AI 标签配置" prepend-icon="mdi-robot-outline" @click="emit('open-ai-settings')" />
+          <v-divider class="my-1" />
+          <v-list-item title="退出登录" prepend-icon="mdi-logout" @click="handleLogout" />
+        </v-list>
+      </v-menu>
+      <v-btn
+        class="quick-upload-btn"
+        color="primary"
+        prepend-icon="mdi-upload"
+        :disabled="!userStore.isAuthenticated"
+        aria-label="快速上传"
+        title="快速上传"
+        @click="emit('open-upload')"
+      >
+        <span class="quick-upload-label">快速上传</span>
+      </v-btn>
+    </div>
+    <template v-if="isMobile" #extension>
+      <div class="search-field search-field-mobile">
+        <v-text-field
+          v-model="query"
+          density="comfortable"
+          variant="outlined"
+          hide-details
+          prepend-inner-icon="mdi-magnify"
+          placeholder="搜索描述或标签"
+          @keydown.enter.prevent="runSearch"
+        />
+      </div>
+    </template>
   </v-app-bar>
 </template>
 
@@ -125,6 +136,26 @@ onBeforeUnmount(() => {
 .app-header {
   border-bottom: 1px solid var(--pm-border-subtle);
   padding-inline: 16px;
+  min-height: 72px;
+}
+
+.app-header :deep(.v-toolbar__content) {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.header-actions--mobile {
+  margin-left: 0;
 }
 
 .search-field {
@@ -132,8 +163,15 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 4px;
   max-width: 420px;
-  flex: 1 1 240px;
+  flex: 1 1 260px;
   min-width: 160px;
+  margin-left: 12px;
+}
+
+.search-field-mobile {
+  margin: 8px 16px 16px;
+  max-width: none;
+  flex: 1 1 100%;
 }
 
 .search-field :deep(.v-field) {
@@ -148,13 +186,6 @@ onBeforeUnmount(() => {
   min-height: 18px;
 }
 
-@media (max-width: 640px) {
-  .search-field {
-    flex: 1 1 100%;
-    min-width: 0;
-  }
-}
-
 .logo-title {
   gap: 14px;
   flex-shrink: 0;
@@ -162,7 +193,6 @@ onBeforeUnmount(() => {
   margin-inline-start: 0;
   padding-inline: 0;
 }
-
 
 .logo-mark {
   position: relative;
@@ -183,6 +213,27 @@ onBeforeUnmount(() => {
   }
   100% {
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .app-header :deep(.v-toolbar__content) {
+    padding-block-end: 0;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .quick-upload-label {
+    display: none;
+  }
+
+  .quick-upload-btn :deep(.v-btn__content) {
+    padding-inline: 0;
   }
 }
 
