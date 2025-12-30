@@ -37,7 +37,7 @@ Photo Manager 是一套跨平台的照片资产管理系统，支持：
 | --- | --- |
 | 框架 | Vue 3 + TypeScript (`main.ts`) |
 | 状态管理 | Pinia：`stores/user`, `stores/photos`, `stores/aiSettings`, `stores/ui` |
-| UI | Vuetify 3，自定义 GitHub Light/Dark 主题（`plugins/vuetify.ts`, `style.css`） |
+| UI | Vuetify 3，自定义 Light/Dark 主题（`plugins/vuetify.ts`, `style.css`） |
 | 网络 | Axios withCredentials（`services/http.ts`），统一请求基址、静态资源域名 |
 | 组件 | 语义化拆分（`components/layout`, `components/photos`, `components/upload`, `components/ai`, `components/auth`） |
 | 媒体处理 | Cropper.js + Canvas 二次渲染（`PhotoEditor.vue`） |
@@ -115,18 +115,17 @@ Photo Manager 是一套跨平台的照片资产管理系统，支持：
 
 ### 3.5 MCP 检索（`McpSearchService` + `McpController` + `PhotoInsightTools`）
 
-- `McpSearchService` 封装全部自然语言检索逻辑（SQL `LIKE` 初筛 + 应用层评分 + 结果格式化）。REST 控制器与 MCP 工具均调用它，避免重复代码。
-- `McpController` 暴露 `POST /api/mcp/search` 作为脚本/HTTP 回退接口。
-- `PhotoInsightTools` 通过 `AddMcpServer().WithHttpTransport().WithToolType<PhotoInsightTools>()` 注册为 SSE MCP Server 工具，自动映射 `/mcp/sse`、`/mcp/messages`。
+- `McpSearchService` 封装全部自然语言检索逻辑（SQL `LIKE` 初筛 + 应用层评分 + 结果格式化）。
+- `PhotoInsightTools` 通过 `AddMcpServer().WithHttpTransport().WithTools<PhotoInsightTools>()` 注册为 SSE MCP Server 工具，自动映射 `/mcp/sse`、`/mcp/messages`。
 - 工具列表：
-  - `search_gallery_photos`：入参与 REST 接口一致，返回 `McpSearchResponse`。
+  - `search_gallery_photos`：入参为`McpSearchRequest`，返回 `McpSearchResponse`。
   - `get_photo_details`：根据 `photoId` 返回尺寸、时间、地点、标签等结构化信息。
 - 所有入口都会校验 Session 中的用户 ID，确保只能访问自己的照片。
 
 ### 3.6 前端交互层
 
 - `AppHeader`：包含全局搜索框（500ms 防抖）、主题切换（读取/写入 `localStorage`，响应系统色彩偏好）、用户菜单（打开 AI 设置 / 退出登录 / 调上传弹窗）。
-- `useUiStore`：追踪主题并在 `document.documentElement.dataset.theme` 上设置 `githubLight/githubDark`，从而驱动 CSS 变量（`style.css`）。
+- `useUiStore`：追踪主题并在 `document.documentElement.dataset.theme` 上设置 `Light/Dark`，从而驱动 CSS 变量（`style.css`）。
 - `usePhotoStore` 负责所有照片 CRUD、过滤条件、选择状态；`useUserStore` 维护登录态；`useAiSettingsStore` 拉取/保存 AI 配置；`useUiStore` 处理主题监听器。
 - 组件树集中在 `App.vue`，未使用 Vue Router，所有视图靠条件渲染与对话框切换。
 
@@ -148,7 +147,6 @@ Photo Manager 是一套跨平台的照片资产管理系统，支持：
 | POST | `/api/photos/delete` | 删除图片 | `{ photoId }` | `{ success: true }` |
 | GET | `/api/ai-settings` | 读取 AI 配置 | – | `AiSettingsResponse` |
 | POST | `/api/ai-settings` | 更新 AI 配置 | `{ model, endpoint?, apiKey?, updateApiKey }` | `AiSettingsResponse` |
-| POST | `/api/mcp/search` | MCP 检索 | `{ query, limit?, from?, to? }` | `McpSearchResponse` |
 
 所有接口均要求用户先登录（`AuthController` 除外），Session Cookie 需随请求带上。上传/编辑接口返回最新的 `PhotoItemDto`，方便前端立即刷新。
 
@@ -208,15 +206,13 @@ sequenceDiagram
 
 ### 6.3 MCP 检索
 
-1. 客户端可以选择：
-   - 通过 `GET /mcp/sse` + `POST /mcp/messages` 建立 SSE 会话（VS Code、Claude Desktop 等 MCP 客户端）。
-   - 直接 `POST /api/mcp/search` 作为回退接口。
-2. `PhotoInsightTools`/`McpController` 均通过 Session 解析当前用户 ID，然后调用 `IMcpSearchService.SearchAsync`。
+1. 客户端通过 `GET /mcp/sse` + `POST /mcp/messages` 建立 SSE 会话（VS Code、Claude Desktop 等 MCP 客户端）。
+2. `PhotoInsightTools` 通过 Session 解析当前用户 ID，然后调用 `IMcpSearchService.SearchAsync`。
 3. `McpSearchService`：
    - 使用 SQL `LIKE` 对描述、地点、文件名、标签做初筛，并根据 `limit`、`from`、`to` 过滤。
    - 取 `limit*4` 的候选集，通过 TF-like 计分/降序排序。
    - 构建 `McpSearchResult`：两段文本（摘要 + 属性列表）以及 `photoId/fileUrl/thumbnailUrl/tags/takenAt/location/width/height/createdAt` 等 metadata。
-4. SSE 工具返回值直接按照 MCP 协议写回 `POST /mcp/messages` 响应，REST 接口则包装成 `McpSearchResponse` 返回给前端/脚本。
+4. SSE 工具返回值直接按照 MCP 协议写回 `POST /mcp/messages` 响应
 
 ---
 
@@ -260,7 +256,7 @@ sequenceDiagram
            PhotoEditor.vue, PhotoMetadataDialog.vue, PhotoDeleteDialog.vue
     upload/UploadFab.vue
     ai/AiSettingsDialog.vue
-  plugins/vuetify.ts          # GitHub 主题
+  plugins/vuetify.ts          # 主题
   style.css                   # 全局 CSS 变量
   utils/errors.ts             # Axios 错误提取
 ```

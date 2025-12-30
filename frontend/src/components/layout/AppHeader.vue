@@ -25,8 +25,8 @@ const displayUsername = computed(() => {
   return smAndDown.value ? username.charAt(0).toUpperCase() : username
 })
 
-const themeIcon = computed(() => (uiStore.currentTheme === 'githubLight' ? 'mdi-weather-night' : 'mdi-white-balance-sunny'))
-const themeLabel = computed(() => (uiStore.currentTheme === 'githubLight' ? '切换到暗色模式' : '切换到亮色模式'))
+const themeIcon = computed(() => (uiStore.currentTheme === 'lightTheme' ? 'mdi-weather-night' : 'mdi-white-balance-sunny'))
+const themeLabel = computed(() => (uiStore.currentTheme === 'lightTheme' ? '切换到暗色模式' : '切换到亮色模式'))
 
 const handleLogout = async () => {
   await userStore.logout()

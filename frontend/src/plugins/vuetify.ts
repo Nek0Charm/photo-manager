@@ -2,7 +2,7 @@ import { createVuetify, type ThemeDefinition } from 'vuetify'
 import { md3 } from 'vuetify/blueprints'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 
-const githubLight: ThemeDefinition = {
+const lightTheme: ThemeDefinition = {
   dark: false,
   colors: {
     background: '#f6f8fa',
@@ -22,7 +22,7 @@ const githubLight: ThemeDefinition = {
   },
 }
 
-const githubDark: ThemeDefinition = {
+const darkTheme: ThemeDefinition = {
   dark: true,
   colors: {
     background: '#0d1117',
@@ -42,16 +42,16 @@ const githubDark: ThemeDefinition = {
   },
 }
 
-export type ThemeName = 'githubLight' | 'githubDark'
-export { githubLight, githubDark }
+export type ThemeName = 'lightTheme' | 'darkTheme'
+export { lightTheme, darkTheme }
 
 const vuetify = createVuetify({
   blueprint: md3,
   theme: {
-    defaultTheme: 'githubLight',
+    defaultTheme: 'lightTheme',
     themes: {
-      githubLight,
-      githubDark,
+      lightTheme,
+      darkTheme,
     },
   },
   icons: {

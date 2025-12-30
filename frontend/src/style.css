@@ -7,7 +7,7 @@
   -webkit-font-smoothing: antialiased;
 }
 
-:root[data-theme='githubLight'] {
+:root[data-theme='lightTheme'] {
   --pm-background: #f6f8fa;
   --pm-surface-main: #f6f8fa;
   --pm-surface-secondary: #f1f3f5;
@@ -17,7 +17,7 @@
   --pm-border-strong: #6e7781;
 }
 
-:root[data-theme='githubDark'] {
+:root[data-theme='darkTheme'] {
   --pm-background: #0d1117;
   --pm-surface-main: #0d1117;
   --pm-surface-secondary: #161b22;
