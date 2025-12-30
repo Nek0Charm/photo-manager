@@ -1,6 +1,8 @@
 using Backend.Data;
+using Backend.Mcp;
 using Backend.Services;
 using Microsoft.EntityFrameworkCore;
+using ModelContextProtocol.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,11 +40,18 @@ builder.Services.AddCors(options =>
 // 4. 添加控制器
 builder.Services.AddControllers();
 
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddSingleton<IAiVisionTagGenerator, OpenAiVisionTagGenerator>();
 builder.Services.AddSingleton<AiTaggingBackgroundService>();
 builder.Services.AddSingleton<IAiTaggingQueue>(sp => sp.GetRequiredService<AiTaggingBackgroundService>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AiTaggingBackgroundService>());
+builder.Services.AddScoped<IMcpSearchService, McpSearchService>();
+builder.Services.AddScoped<PhotoInsightTools>();
+
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithTools<PhotoInsightTools>();
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -76,6 +85,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUi(); 
 }
 
+app.MapMcp();
 app.MapControllers();
 
 app.Run();

@@ -1,9 +1,6 @@
 env.sh
 .vscode
-*.md
-!readme*.md
-!README*.md
-!Readme*.md
+AGENTS.md
 .env
 
 /*.png
