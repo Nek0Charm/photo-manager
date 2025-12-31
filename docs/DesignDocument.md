@@ -267,6 +267,6 @@ sequenceDiagram
 
 1. **本地开发**：后端 `dotnet watch run`（默认 https://localhost:5001），前端 `pnpm run dev`（默认 http://localhost:5173）。需在 `backend/appsettings.Development.json` 中确保前端 Origin 白名单正确。
 2. **容器**：`docker-compose up -d --build`。前端容器通过 `nginx.conf` 反代静态资源并将 `/api` 代理到后端容器。卷：
-   - `./backend/app.db:/app/app.db`
-   - `./backend/wwwroot/uploads:/app/wwwroot/uploads`
+    - `./backend/data:/app/data`
+    - `./backend/wwwroot/uploads:/app/wwwroot/uploads`
 3. **配置密钥**：OpenAI API Key 由用户登录后在“AI 标签配置”对话框中填写，存储于 `UserAiSettings.ApiKey`。

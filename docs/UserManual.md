@@ -47,8 +47,8 @@ docker-compose up -d --build
 - 前端经 Nginx 暴露 `http://localhost:8080`。
 - 后端暴露 `http://localhost:5000`，`/api` 已由 Nginx 反代。
 - 数据卷：
-  - `./backend/app.db:/app/app.db`
-  - `./backend/wwwroot/uploads:/app/wwwroot/uploads`
+- `./backend/data:/app/data`
+- `./backend/wwwroot/uploads:/app/wwwroot/uploads`
 
 ---
 

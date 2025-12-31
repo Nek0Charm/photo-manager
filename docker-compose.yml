@@ -9,10 +9,11 @@ services:
       ASPNETCORE_URLS: http://+:8080
       Cors__Origins__0: http://localhost:5173
       Cors__Origins__1: http://localhost:8080
+      ConnectionStrings__DefaultConnection: Data Source=/app/data/app.db
     ports:
       - "5000:8080"
     volumes:
-      - ./backend/app.db:/app/app.db
+      - ./backend/data:/app/data
       - ./backend/wwwroot/uploads:/app/wwwroot/uploads
     networks:
       - photo-net
