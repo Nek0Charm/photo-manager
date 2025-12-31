@@ -21,11 +21,30 @@ public sealed class AiTaggingOptions
     public string? Endpoint { get; set; }
 
     public int MaxTags { get; set; } = 3;
+
+    public int SuggestionLimit { get; set; } = 5;
+
+    public IReadOnlyList<string> Vocabulary { get; set; } = Array.Empty<string>();
+}
+
+public sealed class AiTaggingResult
+{
+    public static readonly AiTaggingResult Empty = new(Array.Empty<string>(), Array.Empty<string>());
+
+    public AiTaggingResult(IReadOnlyList<string> selected, IReadOnlyList<string> suggested)
+    {
+        Selected = selected;
+        Suggested = suggested;
+    }
+
+    public IReadOnlyList<string> Selected { get; }
+
+    public IReadOnlyList<string> Suggested { get; }
 }
 
 public interface IAiVisionTagGenerator
 {
-    Task<IReadOnlyList<string>> GenerateTagsAsync(string absoluteFilePath, AiTaggingOptions options, CancellationToken cancellationToken);
+    Task<AiTaggingResult> GenerateTagsAsync(string absoluteFilePath, AiTaggingOptions options, CancellationToken cancellationToken);
 }
 
 public sealed class OpenAiVisionTagGenerator : IAiVisionTagGenerator
@@ -37,20 +56,20 @@ public sealed class OpenAiVisionTagGenerator : IAiVisionTagGenerator
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<string>> GenerateTagsAsync(string absoluteFilePath, AiTaggingOptions options, CancellationToken cancellationToken)
+    public async Task<AiTaggingResult> GenerateTagsAsync(string absoluteFilePath, AiTaggingOptions options, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         if (string.IsNullOrWhiteSpace(options.ApiKey))
         {
             _logger.LogDebug("AI tagging skipped because API key is missing.");
-            return Array.Empty<string>();
+            return AiTaggingResult.Empty;
         }
 
         if (!File.Exists(absoluteFilePath))
         {
             _logger.LogWarning("AI tagging skipped because file {Path} cannot be found.", absoluteFilePath);
-            return Array.Empty<string>();
+            return AiTaggingResult.Empty;
         }
 
         var normalizedOptions = NormalizeOptions(options);
@@ -60,14 +79,17 @@ public sealed class OpenAiVisionTagGenerator : IAiVisionTagGenerator
         var imageData = await BinaryData.FromStreamAsync(stream, cancellationToken);
         var mimeType = GetMimeType(Path.GetExtension(absoluteFilePath));
 
+        var vocabularySnippet = BuildVocabularySnippet(normalizedOptions.Vocabulary);
         var messages = new List<ChatMessage>
         {
             new SystemChatMessage(
-                "你是一位资深图片策展人与视觉分类专家。请只输出能够精确描述主要主体、关键场景元素或鲜明情绪的中文名词标签，每个标签不超过 6 个汉字，避免如‘自然’‘风景’等泛泛词汇。"
-                +"请按照重要性输出 1 到 3 个唯一标签，使用 JSON 数组格式（例如 [\"日落\",\"雪山\"]），不得包含解释、序号或额外文本。"),
+                "你是一位资深图片策展人与视觉分类专家。请只输出能够精确描述主要主体、关键场景元素或鲜明情绪的中文名词标签，每个标签不超过 6 个汉字。"
+                + "当词表中已有合适标签时，必须优先选用词表；若确无匹配，请在 `suggested` 中提出不超过 "
+                + normalizedOptions.SuggestionLimit
+                + " 个新标签。始终使用 JSON 对象格式：{\"selected\":[],\"suggested\":[] }，不得附带说明文字。"),
             new UserChatMessage(
                 ChatMessageContentPart.CreateTextPart(
-                    "Inspect this image and return only that JSON array of concise tags; reply [] if no meaningful subject is visible."),
+                    $"Inspect this image and respond with JSON as instructed. {vocabularySnippet} 如果图片主体无法辨识，请返回空数组。"),
                 ChatMessageContentPart.CreateImagePart(imageData, mimeType))
         };
 
@@ -75,12 +97,12 @@ public sealed class OpenAiVisionTagGenerator : IAiVisionTagGenerator
         {
             var completion = await client.CompleteChatAsync(messages, cancellationToken: cancellationToken);
             var text = completion.Value.Content.FirstOrDefault(part => !string.IsNullOrWhiteSpace(part.Text))?.Text;
-            return ParseTags(text, normalizedOptions.MaxTags);
+            return ParseTags(text, normalizedOptions.MaxTags, normalizedOptions.SuggestionLimit);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "OpenAI vision tagging failed for {Path}", absoluteFilePath);
-            return Array.Empty<string>();
+            return AiTaggingResult.Empty;
         }
     }
 
@@ -91,6 +113,12 @@ public sealed class OpenAiVisionTagGenerator : IAiVisionTagGenerator
         var normalizedProvider = string.IsNullOrWhiteSpace(options.Provider) ? "OpenAI" : options.Provider.Trim();
         var normalizedEndpoint = string.IsNullOrWhiteSpace(options.Endpoint) ? null : options.Endpoint.Trim();
         var normalizedMaxTags = options.MaxTags <= 0 ? 3 : options.MaxTags;
+        var normalizedSuggestionLimit = options.SuggestionLimit <= 0 ? 5 : options.SuggestionLimit;
+        var normalizedVocabulary = (options.Vocabulary ?? Array.Empty<string>())
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Select(v => v.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
         return new AiTaggingOptions
         {
@@ -98,7 +126,9 @@ public sealed class OpenAiVisionTagGenerator : IAiVisionTagGenerator
             ApiKey = trimmedKey,
             Model = normalizedModel,
             Endpoint = normalizedEndpoint,
-            MaxTags = normalizedMaxTags
+            MaxTags = normalizedMaxTags,
+            SuggestionLimit = normalizedSuggestionLimit,
+            Vocabulary = normalizedVocabulary
         };
     }
 
@@ -118,22 +148,87 @@ public sealed class OpenAiVisionTagGenerator : IAiVisionTagGenerator
         return new ChatClient(options.Model, options.ApiKey);
     }
 
-    private static IReadOnlyList<string> ParseTags(string? raw, int maxTags)
+    private static string BuildVocabularySnippet(IReadOnlyList<string> vocabulary)
+    {
+        if (vocabulary.Count == 0)
+        {
+            return "当前没有额外的词表可以参考。";
+        }
+
+        var serialized = JsonSerializer.Serialize(vocabulary);
+        return $"请优先从以下词表中选择：{serialized}。";
+    }
+
+    private static AiTaggingResult ParseTags(string? raw, int maxTags, int suggestionLimit)
     {
         if (string.IsNullOrWhiteSpace(raw))
         {
-            return Array.Empty<string>();
+            return AiTaggingResult.Empty;
         }
 
+        if (TryParseStructuredJson(raw, maxTags, suggestionLimit, out var selected, out var suggested))
+        {
+            return new AiTaggingResult(selected, suggested);
+        }
+
+        var legacy = ParseLegacyList(raw, maxTags);
+        return legacy.Count > 0
+            ? new AiTaggingResult(legacy, Array.Empty<string>())
+            : AiTaggingResult.Empty;
+    }
+
+    private static bool TryParseStructuredJson(string raw, int maxTags, int suggestionLimit, out List<string> selected, out List<string> suggested)
+    {
+        selected = new List<string>(maxTags);
+        suggested = new List<string>(suggestionLimit);
+        var candidate = ExtractJsonFragment(raw);
+
+        try
+        {
+            using var document = JsonDocument.Parse(candidate, new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip
+            });
+
+            var root = document.RootElement;
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                if (root.TryGetProperty("selected", out var selectedElement))
+                {
+                    FillListFromJson(selectedElement, selected, maxTags);
+                }
+
+                if (root.TryGetProperty("suggested", out var suggestedElement))
+                {
+                    FillListFromJson(suggestedElement, suggested, suggestionLimit);
+                }
+
+                return selected.Count > 0 || suggested.Count > 0;
+            }
+
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                FillListFromJson(root, selected, maxTags);
+                return selected.Count > 0;
+            }
+        }
+        catch (JsonException)
+        {
+            // swallow and fall back to legacy parsing
+        }
+
+        selected.Clear();
+        suggested.Clear();
+        return false;
+    }
+
+    private static List<string> ParseLegacyList(string raw, int maxTags)
+    {
+        var trimmed = ExtractJsonFragment(raw);
         var collected = new List<string>(maxTags);
         var uniques = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        if (TryParseJson(raw, maxTags, collected, uniques))
-        {
-            return collected;
-        }
-
-        var trimmed = ExtractArray(raw);
         foreach (var part in trimmed.Split(new[] { ',', '\n', ';', '|', '，', '、' }, StringSplitOptions.RemoveEmptyEntries))
         {
             var normalized = NormalizeTag(part);
@@ -152,52 +247,50 @@ public sealed class OpenAiVisionTagGenerator : IAiVisionTagGenerator
         return collected;
     }
 
-    private static bool TryParseJson(string raw, int maxTags, List<string> buffer, HashSet<string> uniques)
+    private static void FillListFromJson(JsonElement element, List<string> buffer, int limit)
     {
-        var candidate = ExtractArray(raw);
-        try
+        if (element.ValueKind != JsonValueKind.Array)
         {
-            var parsed = JsonSerializer.Deserialize<string[]>(candidate, new JsonSerializerOptions
-            {
-                AllowTrailingCommas = true,
-                ReadCommentHandling = JsonCommentHandling.Skip
-            });
-
-            if (parsed == null)
-            {
-                return false;
-            }
-
-            foreach (var entry in parsed)
-            {
-                var normalized = NormalizeTag(entry);
-                if (normalized.Length == 0 || !uniques.Add(normalized))
-                {
-                    continue;
-                }
-
-                buffer.Add(normalized);
-                if (buffer.Count >= maxTags)
-                {
-                    break;
-                }
-            }
-
-            return buffer.Count > 0;
+            return;
         }
-        catch (JsonException)
+
+        var uniques = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in element.EnumerateArray())
         {
-            return false;
+            if (buffer.Count >= limit)
+            {
+                break;
+            }
+
+            if (item.ValueKind is not JsonValueKind.String && item.ValueKind is not JsonValueKind.Number)
+            {
+                continue;
+            }
+
+            var normalized = NormalizeTag(item.ToString());
+            if (normalized.Length == 0 || !uniques.Add(normalized))
+            {
+                continue;
+            }
+
+            buffer.Add(normalized);
         }
     }
 
-    private static string ExtractArray(string raw)
+    private static string ExtractJsonFragment(string raw)
     {
-        var start = raw.IndexOf('[');
-        var end = raw.LastIndexOf(']');
-        if (start >= 0 && end > start)
+        var objectStart = raw.IndexOf('{');
+        var objectEnd = raw.LastIndexOf('}');
+        if (objectStart >= 0 && objectEnd > objectStart)
         {
-            return raw[start..(end + 1)];
+            return raw[objectStart..(objectEnd + 1)];
+        }
+
+        var arrayStart = raw.IndexOf('[');
+        var arrayEnd = raw.LastIndexOf(']');
+        if (arrayStart >= 0 && arrayEnd > arrayStart)
+        {
+            return raw[arrayStart..(arrayEnd + 1)];
         }
 
         return raw;

@@ -101,6 +101,7 @@ docker-compose up -d --build
 
 - `PhotoViewer` 中的标签按类型着色，鼠标悬浮可见类型提示。
 - AI 标签生成失败时，可在“AI 设置”对话框核对模型/Key 是否配置。
+- AI 标签优先从“受控词表”挑选：词表由系统默认关键词 + 你最近 50 个最常用的手动/EXIF 标签组成，确保检索一致性；若模型需要新增概念，会将其写入“建议池”，待管理员审核后再并入词表。
 
 ---
 
@@ -109,7 +110,7 @@ docker-compose up -d --build
 1. 登录后点击标题栏头像 → “AI 标签设置”。
 2. 在 `AiSettingsDialog` 中选择模型（默认 OpenAI `gpt-4.1-mini`），可选自定义 Endpoint。
 3. 首次保存或勾选“更新 API Key”时需要输入 Key，存储于服务器的 `UserAiSettings.ApiKey`，不会回显。
-4. 上传/编辑照片后后台任务会读取该配置调用 OpenAI Vision，生成 1~3 个中文标签。
+4. 上传/编辑照片后后台任务会读取该配置调用 OpenAI Vision，根据受控词表返回 `selected` + `suggested` 两组标签：`selected` 立即落库，`suggested` 会记录到后台的“AI 标签建议”表。
 
 ---
 

@@ -135,6 +135,7 @@ static void EnsurePhotoSchema(AppDbContext db)
     db.Database.ExecuteSqlRaw(@"CREATE INDEX IF NOT EXISTS ""IX_PhotoTags_TagId"" ON ""PhotoTags"" (""TagId"");");
 
     EnsureUserAiSettingsSchema(db);
+    EnsureAiTagSuggestionsSchema(db);
 }
 
 static void EnsureUserAiSettingsSchema(AppDbContext db)
@@ -151,4 +152,20 @@ static void EnsureUserAiSettingsSchema(AppDbContext db)
     );");
 
     db.Database.ExecuteSqlRaw(@"CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserAiSettings_UserId"" ON ""UserAiSettings"" (""UserId"");");
+}
+
+static void EnsureAiTagSuggestionsSchema(AppDbContext db)
+{
+    db.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ""AiTagSuggestions"" (
+        ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_AiTagSuggestions"" PRIMARY KEY AUTOINCREMENT,
+        ""UserId"" INTEGER NOT NULL,
+        ""PhotoId"" INTEGER NOT NULL,
+        ""Name"" TEXT NOT NULL,
+        ""CreatedAt"" TEXT NOT NULL,
+        ""IsAdopted"" INTEGER NOT NULL DEFAULT 0,
+        ""AdoptedAt"" TEXT NULL,
+        CONSTRAINT ""FK_AiTagSuggestions_Photos_PhotoId"" FOREIGN KEY (""PhotoId"") REFERENCES ""Photos"" (""Id"") ON DELETE CASCADE
+    );");
+
+    db.Database.ExecuteSqlRaw(@"CREATE UNIQUE INDEX IF NOT EXISTS ""IX_AiTagSuggestions_UserId_Name"" ON ""AiTagSuggestions"" (""UserId"", ""Name"");");
 }

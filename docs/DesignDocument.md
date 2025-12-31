@@ -107,9 +107,10 @@ Photo Manager 是一套跨平台的照片管理系统，支持：
 
 2. 标签生成队列 (`AiTaggingBackgroundService`)
    - `IAiTaggingQueue.QueueAsync` 在上传/编辑后被调用，将 {photoId, absoluteFilePath} 丢入无界 Channel。
-   - Hosted Service 单线程消费：拉取用户 AI 配置 → 调用 `IAiVisionTagGenerator.GenerateTagsAsync`（OpenAI Vision Chat API），System Prompt 限制输出 1~3 个中文标签。
-   - 解析 JSON 数组或回退到分隔符解析，统一转成小写、短横线连接的标签。
-   - 成功后追加到 `Tag (Type=Ai)`，缺失则自动插入，保存数据库。
+   - Hosted Service 单线程消费：拉取用户 AI 配置，并动态构建“受控词表”——由默认核心标签 + 当前用户最近 50 个最常用的手动/EXIF 标签组成——随同请求发送。
+   - `IAiVisionTagGenerator.GenerateTagsAsync` 返回 `{"selected":[],"suggested":[]}`：`selected` 必须引用词表，`suggested` 只在词表缺失时列出候选。
+   - 解析 JSON 结果时优先写入 `selected` → `Tag (Type=Ai)`，并把 `suggested` 存到 `AiTagSuggestions` 待审核表。
+   - 若模型仍输出旧格式（数组/分隔串），将回落到兼容解析并仅记录 `selected`。
 
 ### 3.5 MCP 检索（`McpSearchService` + `McpController` + `PhotoInsightTools`）
 
@@ -159,6 +160,7 @@ Photo Manager 是一套跨平台的照片管理系统，支持：
 | `Tags` | `Id`, `Name`, `Type` (`0=Manual,1=Ai,2=Exif`) | 标签字典，`(Name, Type)` 唯一 |
 | `PhotoTags` | `PhotoId`, `TagId`（联合主键） | 多对多关联 |
 | `UserAiSettings` | `Id`, `UserId`(unique), `Provider`, `Model`, `Endpoint`, `ApiKey`, `UpdatedAt` | 每个用户一份 AI 配置 |
+| `AiTagSuggestions` | `Id`, `UserId`, `PhotoId`, `Name`, `CreatedAt`, `IsAdopted`, `AdoptedAt` | AI 输出但不在词表中的候选标签，等待人工审核/采纳 |
 
 `Program.InitializeDatabase` 在启动时通过原生 SQL `CREATE TABLE IF NOT EXISTS` 确保表结构存在（适配 SQLite 在生产环境无迁移工具的情况），同时 EF Core 也定义了相同模型与索引，方便未来迁移。
 

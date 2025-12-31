@@ -12,6 +12,7 @@ namespace Backend.Data
         public DbSet<Tag> Tags { get; set; }
         public DbSet<PhotoTag> PhotoTags { get; set; }
         public DbSet<UserAiSetting> UserAiSettings { get; set; }
+        public DbSet<AiTagSuggestion> AiTagSuggestions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -52,6 +53,16 @@ namespace Backend.Data
                 .HasOne(pt => pt.Tag)
                 .WithMany(t => t.PhotoTags)
                 .HasForeignKey(pt => pt.TagId);
+
+            modelBuilder.Entity<AiTagSuggestion>()
+                .HasIndex(s => new { s.UserId, s.Name })
+                .IsUnique();
+
+            modelBuilder.Entity<AiTagSuggestion>()
+                .HasOne(s => s.Photo)
+                .WithMany()
+                .HasForeignKey(s => s.PhotoId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
