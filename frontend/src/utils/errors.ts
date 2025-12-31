@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const pickString = (value: unknown) => (typeof value === 'string' ? value.trim() : '')
 
-export function getErrorMessage(error: unknown, fallback = '请求失败') {
+export function getErrorMessage(error: unknown, fallback: string = '请求失败'): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data
     if (typeof data === 'string') {
@@ -12,7 +12,7 @@ export function getErrorMessage(error: unknown, fallback = '请求失败') {
       const candidates = ['message', 'error', 'detail', 'title']
         .map((key) => pickString((data as Record<string, unknown>)[key]))
         .filter(Boolean)
-      if (candidates.length) return candidates[0]
+      if (candidates.length) return candidates[0]!
 
       const errors = (data as { errors?: Record<string, unknown> }).errors
       if (errors && typeof errors === 'object') {
